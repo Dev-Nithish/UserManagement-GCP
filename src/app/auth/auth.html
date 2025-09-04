@@ -1,0 +1,63 @@
+<mat-card class="auth-card">
+  <h2 class="title">Welcome</h2>
+
+  <!-- Landing: two buttons -->
+  <ng-container *ngIf="mode === 'landing'">
+    <div class="btn-row">
+      <button mat-raised-button color="primary" (click)="goLogin()">Login</button>
+      <button mat-raised-button color="accent" (click)="goSignup()">Signup</button>
+    </div>
+  </ng-container>
+
+  <!-- Login form -->
+  <ng-container *ngIf="mode === 'login'">
+    <h3>Login</h3>
+    <form (ngSubmit)="submitLogin()">
+      <mat-form-field appearance="outline" class="w100">
+        <mat-label>Email</mat-label>
+        <input matInput [(ngModel)]="email" name="email" required type="email" />
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="w100">
+        <mat-label>Password</mat-label>
+        <input matInput [(ngModel)]="password" name="password" required type="password" />
+      </mat-form-field>
+
+      <div class="btn-row">
+        <button mat-stroked-button type="button" (click)="back()">Back</button>
+        <button mat-raised-button color="primary" type="submit">Login</button>
+      </div>
+      <p class="msg" *ngIf="message">{{ message }}</p>
+    </form>
+  </ng-container>
+
+  <!-- Signup form -->
+  <ng-container *ngIf="mode === 'signup'">
+    <h3>Signup</h3>
+    <form (ngSubmit)="submitSignup()">
+      <mat-form-field appearance="outline" class="w100">
+        <mat-label>Name</mat-label>
+        <input matInput [(ngModel)]="name" name="name" />
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="w100">
+        <mat-label>Email</mat-label>
+        <input matInput [(ngModel)]="email" name="email" required type="email" />
+      </mat-form-field>
+
+
+
+      
+      <mat-form-field appearance="outline" class="w100">
+        <mat-label>Password</mat-label>
+        <input matInput [(ngModel)]="password" name="password" required type="password" />
+      </mat-form-field>
+
+      <div class="btn-row">
+        <button mat-stroked-button type="button" (click)="back()">Back</button>
+        <button mat-raised-button color="accent" type="submit">Create account</button>
+      </div>
+      <p class="msg" *ngIf="message">{{ message }}</p>
+    </form>
+  </ng-container>
+</mat-card>

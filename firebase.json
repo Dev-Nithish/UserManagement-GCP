@@ -1,0 +1,20 @@
+{
+  "hosting": {
+    "public": "dist/angular-localstorage-table/browser",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ],
+    "rewrites": [
+      {
+        "source": "**",
+        "destination": "/index.html"
+      }
+    ]
+  },
+  "functions": {
+    "source": "backend",
+    "runtime": "nodejs18"
+  }
+}

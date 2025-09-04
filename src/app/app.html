@@ -1,0 +1,17 @@
+<!-- If user is logged out: show Auth landing -->
+<ng-container *ngIf="(auth.user$ | async) === null; else loggedIn">
+  <app-auth></app-auth>
+</ng-container>
+
+<!-- If logged in: show toolbar + your user table -->
+<ng-template #loggedIn>
+  <mat-toolbar color="primary">
+     <span style="display: block; text-align: center; color: black; font-weight: bold; font-size: 20px;">
+    User Management
+  </span>
+    <span style="flex:1"></span>
+    <button mat-button (click)="auth.logout()">Logout</button>
+  </mat-toolbar>
+
+  <app-user-table></app-user-table>
+</ng-template>
