@@ -6,7 +6,7 @@ WORKDIR /app
 COPY package.json package-lock.json ./
 
 # Install Angular dependencies
-RUN npm install
+RUN npm install --legacy-peer-deps
 
 # Copy Angular source files
 COPY . .
@@ -23,14 +23,17 @@ COPY --from=builder /app/dist/angular-localstorage-table ./dist/angular-localsto
 
 # Copy backend server files
 COPY server.js ./
-COPY backend/package.json ./
-COPY backend/package-lock.json ./
+COPY backend/package.json backend/package-lock.json ./backend/
 
 # Install only backend dependencies
-RUN npm install --omit=dev
+WORKDIR /app/backend
+RUN npm install --legacy-peer-deps
+
+# Return to app root
+WORKDIR /app
 
 # Expose Cloud Run port
 EXPOSE 8080
 
 # Start Express server
-CMD ["npm", "start"]
+CMD ["node", "server.js"]
