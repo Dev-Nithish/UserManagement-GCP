@@ -2,7 +2,7 @@
 FROM node:20 AS builder
 WORKDIR /app
 
-# Copy only Angular package files (assumes package.json in root is Angular)
+# Copy Angular package files
 COPY package.json package-lock.json ./
 
 # Install Angular dependencies
@@ -14,11 +14,11 @@ COPY . .
 # Build Angular for production
 RUN npm run build -- --output-path=./dist/angular-localstorage-table
 
-# Stage 2: Serve with Express backend
+# Stage 2: Serve with Express
 FROM node:20-alpine
 WORKDIR /app
 
-# Copy Angular build output
+# Copy Angular build from Stage 1
 COPY --from=builder /app/dist/angular-localstorage-table ./dist/angular-localstorage-table
 
 # Copy backend server files
