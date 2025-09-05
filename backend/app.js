@@ -7,7 +7,11 @@ const { Storage } = require("@google-cloud/storage");
 require("dotenv").config();
 
 const app = express();
-app.use(cors());
+
+// ✅ Enable CORS for all routes (can replace "*" with your frontend URL if needed)
+app.use(cors({ origin: "*" }));
+
+// Middleware to parse JSON
 app.use(express.json());
 
 // ✅ Initialize Firebase Admin (local or cloud)
@@ -174,7 +178,4 @@ if (require.main === module) {
     console.log(`🚀 Backend running at http://localhost:${PORT}`);
   });
 }
-
-
-
 module.exports = app;

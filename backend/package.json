@@ -1,25 +1,21 @@
 {
   "name": "backend",
   "version": "1.0.0",
-  "main": "cloud.js",
+  "main": "index.js",
   "scripts": {
-    "start": "npx functions-framework --target=api --port=8080",
-    "dev": "nodemon cloud.js"
+    "start": "functions-framework --target=api --port=8080",
+    "dev": "nodemon index.js"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "description": "",
   "dependencies": {
+    "@google-cloud/storage": "^7.12.1",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
     "express": "^4.19.2",
     "firebase-admin": "^13.5.0",
-    "@google-cloud/storage": "^7.12.1",
     "node-fetch": "^2.7.0"
   },
   "devDependencies": {
-    "nodemon": "^3.1.10",
-    "@google-cloud/functions-framework": "^3.4.0"
+    "@google-cloud/functions-framework": "^3.4.0",
+    "nodemon": "^3.1.10"
   }
 }
