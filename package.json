@@ -1,13 +1,13 @@
 {
   "name": "angular-localstoarge-table",
   "version": "0.0.0",
-  "scripts": {
-    "ng": "ng",
-    "start": "node server.js",
-    "build": "ng build --configuration production",
-    "watch": "ng build --watch --configuration development",
-    "test": "ng test"
-  },
+ "scripts": {
+  "ng": "ng",
+  "start": "node server.js",
+  "build": "node --max_old_space_size=8192 ./node_modules/@angular/cli/bin/ng build",
+  "watch": "ng watch",
+  "test": "ng test"
+},
   "prettier": {
     "overrides": [
       {

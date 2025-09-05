@@ -4,12 +4,14 @@ WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm install
 COPY . .
-RUN npm run build -- --output-path=./dist/angular-project1
+# Use the updated build script from package.json which allocates more memory
+RUN npm run build -- --output-path=./dist/angular-localstorage-table
 
-# Stage 2: Serve the application with the simple Express server
+# Stage 2: Serve the application with a simple Express server
 FROM node:18-alpine
 WORKDIR /app
-COPY --from=builder /app/dist/angular-project1 ./dist/angular-project1
+# Copy the built files from the first stage
+COPY --from=builder /app/dist/angular-localstorage-table ./dist/angular-localstorage-table
 COPY server.js .
 COPY package.json .
 RUN npm install --omit=dev
