@@ -35,21 +35,6 @@ try {
 
 const db = admin.firestore();
 
-// ✅ Initialize Google Cloud Storage
-let storage;
-try {
-  if (process.env.GCP_PROJECT) {
-    storage = new Storage(); // Cloud Functions → default creds
-  } else {
-    const serviceAccount = require(path.join(__dirname, "service-account.json"));
-    storage = new Storage({ credentials: serviceAccount });
-  }
-} catch (err) {
-  console.error("⚠️ Failed to initialize GCS", err);
-}
-const bucketName = "your-bucket-name"; // 👈 replace this
-const bucket = storage ? storage.bucket(bucketName) : null;
-
 // ------------------ ROUTES ------------------
 
 app.get("/", (req, res) => {

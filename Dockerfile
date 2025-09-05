@@ -4,16 +4,24 @@ WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm install
 COPY . .
-# Use the updated build script from package.json which allocates more memory
+# Build Angular app for production
 RUN npm run build -- --output-path=./dist/angular-localstorage-table
 
-# Stage 2: Serve the application with a simple Express server
+# Stage 2: Serve the application with Express
 FROM node:18-alpine
 WORKDIR /app
-# Copy the built files from the first stage
+
+# Copy production build from builder
 COPY --from=builder /app/dist/angular-localstorage-table ./dist/angular-localstorage-table
-COPY server.js .
-COPY package.json .
+
+# Copy server and package files
+COPY server.js package.json ./
+
+# Install only production dependencies
 RUN npm install --omit=dev
+
+# Cloud Run expects the container to listen on this port
 EXPOSE 8080
-CMD [ "npm", "start" ]
+
+# Start the server
+CMD ["npm", "start"]

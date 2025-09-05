@@ -6,12 +6,12 @@ const app = express();
 const port = process.env.PORT || 8080;
 
 // Serve the static files from the 'dist' folder.
-// The path 'dist/<your-project-name>' is what the Angular CLI creates.
-app.use(express.static(path.join(__dirname, 'dist/angular-project1')));
+// The path must match the folder created by Angular CLI during build
+app.use(express.static(path.join(__dirname, 'dist/angular-localstorage-table')));
 
 // For all other routes, serve the 'index.html' file. This is crucial for single-page applications (SPAs).
 app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, 'dist/angular-project1/index.html'));
+  res.sendFile(path.join(__dirname, 'dist/angular-localstorage-table/index.html'));
 });
 
 // Start the server and listen on the correct port.
