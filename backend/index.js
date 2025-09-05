@@ -1,5 +1,8 @@
+// Import the Functions Framework
 const functions = require('@google-cloud/functions-framework');
+
+// Import your Express app
 const app = require('./app');
 
-// Cloud Function entrypoint
+// Export an HTTP function named "api"
 functions.http('api', app);

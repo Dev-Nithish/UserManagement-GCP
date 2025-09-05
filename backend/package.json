@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "start": "node index.js",
+    "start": "functions-framework --target=api",
     "dev": "nodemon index.js"
   },
   "dependencies": {
