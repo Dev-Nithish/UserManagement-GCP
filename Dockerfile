@@ -1,27 +1,28 @@
-# Stage 1: Build the Angular application
+# Stage 1: Build Angular
 FROM node:18 AS builder
 WORKDIR /app
+
+# Copy Angular project package.json
 COPY package.json package-lock.json ./
+
 RUN npm install
 COPY . .
-# Build Angular app for production
 RUN npm run build -- --output-path=./dist/angular-localstorage-table
 
-# Stage 2: Serve the application with Express
+# Stage 2: Serve with Express
 FROM node:18-alpine
 WORKDIR /app
 
 # Copy production build from builder
 COPY --from=builder /app/dist/angular-localstorage-table ./dist/angular-localstorage-table
 
-# Copy server and package files
-COPY server.js package.json ./
+# Copy server.js and backend package.json
+COPY server.js ./
+COPY backend/package.json ./
+COPY backend/package-lock.json ./
 
 # Install only production dependencies
 RUN npm install --omit=dev
 
-# Cloud Run expects the container to listen on this port
 EXPOSE 8080
-
-# Start the server
 CMD ["npm", "start"]
