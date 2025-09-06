@@ -7,6 +7,11 @@ const apiApp = require('./backend/app');
 const app = express();
 const port = process.env.PORT || 8080;
 
+// Log environment info
+console.log("🚀 Starting server...");
+console.log(`PORT=${port}`);
+console.log(`NODE_ENV=${process.env.NODE_ENV || 'development'}`);
+
 // Middleware & routes
 app.use('/api', apiApp);
 
@@ -18,8 +23,23 @@ app.get(/^\/(?!api).*$/, (req, res) => {
   res.sendFile(path.join(__dirname, 'dist/angular-localstorage-table/index.html'));
 });
 
-// Start server on Cloud Run
-app.listen(port, '0.0.0.0', () => {
-  console.log(`🚀 Server running on port ${port}`);
+// Health check endpoint for Cloud Run
+app.get('/health', (req, res) => res.json({ status: 'ok', message: 'Server is running' }));
+
+// Catch all for unknown routes
+app.use((req, res) => res.status(404).json({ error: 'Not found' }));
+
+// Log unhandled rejections
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('❌ Unhandled Rejection at:', promise, 'reason:', reason);
 });
-c
+
+// Start server
+try {
+  app.listen(port, '0.0.0.0', () => {
+    console.log(`🚀 Server running on port ${port}`);
+  });
+} catch (err) {
+  console.error('❌ Failed to start server:', err);
+  process.exit(1);
+}
