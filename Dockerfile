@@ -1,4 +1,4 @@
-# Stage 1: Build Angular
+# ---------------- Stage 1: Build Angular ----------------
 FROM node:20 AS builder
 WORKDIR /app
 
@@ -8,17 +8,17 @@ COPY package.json package-lock.json ./
 # Install frontend dependencies
 RUN npm install --legacy-peer-deps
 
-# Copy all frontend source files
+# Copy all source files
 COPY . .
 
 # Build Angular
 RUN npm run build -- --output-path=./dist/angular-localstorage-table
 
-# Stage 2: Setup backend + server
+# ---------------- Stage 2: Setup backend + server ----------------
 FROM node:20-alpine
 WORKDIR /app
 
-# Copy Angular build from builder
+# Copy Angular build
 COPY --from=builder /app/dist/angular-localstorage-table ./dist/angular-localstorage-table
 
 # Copy backend and server
@@ -30,7 +30,7 @@ WORKDIR /app/backend
 COPY backend/package.json backend/package-lock.json ./
 RUN npm install --legacy-peer-deps --omit=dev
 
-# Go back to /app
+# Return to root
 WORKDIR /app
 
 # Expose Cloud Run port
