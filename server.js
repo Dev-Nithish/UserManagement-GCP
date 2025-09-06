@@ -7,7 +7,7 @@ const apiApp = require('./backend/app');
 const app = express();
 const port = process.env.PORT || 8080;
 
-// Mount backend API at /api
+// Middleware & routes
 app.use('/api', apiApp);
 
 // Serve Angular frontend
@@ -18,7 +18,7 @@ app.get(/^\/(?!api).*$/, (req, res) => {
   res.sendFile(path.join(__dirname, 'dist/angular-localstorage-table/index.html'));
 });
 
-// Bind to 0.0.0.0 for Cloud Run
+// Start server on Cloud Run
 app.listen(port, '0.0.0.0', () => {
-  console.log(`🚀 Server running at http://0.0.0.0:${port}`);
+  console.log(`🚀 Server running on port ${port}`);
 });
