@@ -1,6 +1,6 @@
 {
   "hosting": {
-    "public": "dist/angular-localstorage-table/browser",
+    "public": "dist/angular-localstorage-table",
     "ignore": [
       "firebase.json",
       "**/.*",

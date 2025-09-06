@@ -7,15 +7,15 @@ const apiApp = require('./backend/app');
 const app = express();
 const port = process.env.PORT || 8080;
 
-// Middleware & routes
+// API routes
 app.use('/api', apiApp);
 
-// Serve Angular frontend
-app.use(express.static(path.join(__dirname, 'dist/angular-localstorage-table')));
+// Serve Angular frontend (dist path must include /browser)
+app.use(express.static(path.join(__dirname, 'dist/angular-localstoarge-table/browser')));
 
 // Angular routes fallback (except /api)
 app.get(/^\/(?!api).*$/, (req, res) => {
-  res.sendFile(path.join(__dirname, 'dist/angular-localstorage-table/index.html'));
+  res.sendFile(path.join(__dirname, 'dist/angular-localstoarge-table/browser/index.html'));
 });
 
 // Health check for Cloud Run
