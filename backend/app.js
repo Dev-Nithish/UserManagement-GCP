@@ -29,30 +29,32 @@ app.use(express.json());
 
 // ------------------ Firebase Admin ------------------
 const adminOptions = {};
-
-if (process.env.GOOGLE_CLOUD_PROJECT) {
-  // ✅ Running on Cloud Run → default service account will be used
-  console.log("🔥 Running on Cloud Run: using default credentials");
-} else {
-  // ✅ Running locally → load service-account.json
-  const serviceAccountPath = path.join(__dirname, "service-account.json");
-  if (!fs.existsSync(serviceAccountPath)) {
-    console.warn("⚠️ service-account.json not found! Firebase Admin will not initialize locally.");
+try {
+  if (process.env.GOOGLE_CLOUD_PROJECT) {
+    console.log("🔥 Running on Cloud Run: using default credentials");
   } else {
-    adminOptions.credential = admin.credential.cert(require(serviceAccountPath));
-    console.log("🔥 Running locally: using local service-account.json");
+    const serviceAccountPath = path.join(__dirname, "service-account.json");
+    if (fs.existsSync(serviceAccountPath)) {
+      adminOptions.credential = admin.credential.cert(require(serviceAccountPath));
+      console.log("🔥 Running locally: using local service-account.json");
+    } else {
+      console.warn("⚠️ service-account.json not found locally. Firebase Admin may fail.");
+    }
   }
+  admin.initializeApp(adminOptions);
+  console.log("🔥 Firebase Admin initialized");
+} catch (err) {
+  console.error("⚠️ Firebase Admin failed to initialize", err);
 }
 
-admin.initializeApp(adminOptions);
-
+// Firestore instance
 const db = admin.firestore();
 
 // ------------------ Routes ------------------
 app.get("/", (req, res) => res.send("Welcome to the backend API!"));
 app.get("/health", (req, res) => res.json({ status: "ok", message: "Backend working!" }));
 
-// ------------------ AUTH ------------------
+// Auth endpoints
 app.post("/auth/signup", async (req, res) => {
   const { email, password } = req.body;
   try {
@@ -86,7 +88,7 @@ app.post("/auth/login", async (req, res) => {
   }
 });
 
-// ------------------ USERS ------------------
+// Users endpoints
 app.get("/users", async (req, res) => {
   try {
     const snapshot = await db.collection("users").get();
