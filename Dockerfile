@@ -1,35 +1,37 @@
-# ------------------ Stage 1: Build Angular ------------------
-FROM node:20 AS builder
+# Stage 1: Build Angular app
+FROM node:20 AS build
+
 WORKDIR /app
 
-# Copy frontend package files
-COPY package.json package-lock.json ./
+# Copy Angular package files and install dependencies
+COPY package*.json ./
+RUN npm install
 
-# Install dependencies
-RUN npm install --legacy-peer-deps
-
-# Copy all source files
+# Copy Angular source code and build
 COPY . .
+RUN npm run build --prod
 
-# Build Angular frontend
-RUN npm run build -- --output-path=./dist/angular-localstorage-table
-
-# ------------------ Stage 2: Setup backend + server ------------------
+# Stage 2: Runtime container
 FROM node:20
+
 WORKDIR /app
 
-# Copy Angular build
-COPY --from=builder /app/dist/angular-localstorage-table ./dist/angular-localstorage-table
-
-# Copy backend and server files
-COPY server.js ./server.js
+# Copy backend files
 COPY backend ./backend
-COPY package.json package-lock.json ./
 
 # Install backend dependencies
-RUN npm install --legacy-peer-deps --omit=dev
+WORKDIR /app/backend
+COPY backend/package*.json ./
+RUN npm install --omit=dev
 
-# Expose port for Cloud Run
+# Copy built Angular dist from build stage
+WORKDIR /app
+COPY --from=build /app/dist ./dist
+
+# Copy server.js
+COPY server.js .
+
+# Expose port (Cloud Run sets $PORT)
 EXPOSE 8080
 
 # Start server
