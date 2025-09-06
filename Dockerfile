@@ -2,13 +2,13 @@
 FROM node:20 AS builder
 WORKDIR /app
 
-# Copy package files
+# Copy frontend package files
 COPY package.json package-lock.json ./
 
-# Install all dependencies (Angular + backend dev deps are okay here)
+# Install frontend dependencies
 RUN npm install --legacy-peer-deps
 
-# Copy all source files
+# Copy all frontend source files
 COPY . .
 
 # Build Angular
@@ -24,10 +24,14 @@ COPY --from=builder /app/dist/angular-localstorage-table ./dist/angular-localsto
 # Copy backend and server
 COPY server.js ./server.js
 COPY backend ./backend
-COPY package.json package-lock.json ./  
 
-# Install only production dependencies
+# Install backend dependencies
+WORKDIR /app/backend
+COPY backend/package.json backend/package-lock.json ./
 RUN npm install --legacy-peer-deps --omit=dev
+
+# Go back to /app
+WORKDIR /app
 
 # Expose Cloud Run port
 EXPOSE 8080

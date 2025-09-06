@@ -4,7 +4,7 @@ const admin = require("firebase-admin");
 const path = require("path");
 const fetch = require("node-fetch");
 require("dotenv").config();
-const fs= require("fs");
+const fs = require("fs");
 
 const app = express();
 
@@ -37,15 +37,17 @@ if (process.env.GOOGLE_CLOUD_PROJECT) {
   // ✅ Running locally → load service-account.json
   const serviceAccountPath = path.join(__dirname, "service-account.json");
   if (!fs.existsSync(serviceAccountPath)) {
-    throw new Error("service-account.json not found in backend folder!");
+    console.warn("⚠️ service-account.json not found! Firebase Admin will not initialize locally.");
+  } else {
+    adminOptions.credential = admin.credential.cert(require(serviceAccountPath));
+    console.log("🔥 Running locally: using local service-account.json");
   }
-  adminOptions.credential = admin.credential.cert(require(serviceAccountPath));
-  console.log("🔥 Running locally: using local service-account.json");
 }
 
 admin.initializeApp(adminOptions);
 
 const db = admin.firestore();
+
 // ------------------ Routes ------------------
 app.get("/", (req, res) => res.send("Welcome to the backend API!"));
 app.get("/health", (req, res) => res.json({ status: "ok", message: "Backend working!" }));
@@ -130,7 +132,4 @@ app.delete("/users/:id", async (req, res) => {
   }
 });
 
-
-
 module.exports = app;
-
