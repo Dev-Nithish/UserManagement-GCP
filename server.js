@@ -2,7 +2,7 @@ const express = require('express');
 const path = require('path');
 
 // Import your backend API
-const apiApp = require('./backend/app'); // <-- your app.js
+const apiApp = require('./backend/app'); // <-- app.js in backend folder
 
 const app = express();
 const port = process.env.PORT || 8080;
@@ -19,5 +19,5 @@ app.get(/^\/(?!api).*$/, (req, res) => {
 });
 
 app.listen(port, () => {
-  console.log(`Server is running at http://localhost:${port}`);
+  console.log(`🚀 Server is running at http://localhost:${port}`);
 });

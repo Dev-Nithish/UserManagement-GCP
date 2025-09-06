@@ -21,17 +21,12 @@ WORKDIR /app
 # Copy Angular build from Stage 1
 COPY --from=builder /app/dist/angular-localstorage-table ./dist/angular-localstorage-table
 
-# Copy backend files
+# Copy backend server files
 COPY server.js ./
-COPY backend ./backend/          
-COPY backend/service-account.json ./backend/service-account.json
+COPY backend ./backend/
 
-# Install backend dependencies
-WORKDIR /app/backend
+# Install only backend dependencies
 RUN npm install --legacy-peer-deps --omit=dev
-
-# Move back to /app
-WORKDIR /app
 
 # Expose Cloud Run port
 EXPOSE 8080

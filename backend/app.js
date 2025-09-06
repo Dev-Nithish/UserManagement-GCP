@@ -4,6 +4,7 @@ const admin = require("firebase-admin");
 const path = require("path");
 const fetch = require("node-fetch");
 require("dotenv").config();
+const fs= require("fs");
 
 const app = express();
 
@@ -27,24 +28,31 @@ app.options("*", cors());
 app.use(express.json());
 
 // ------------------ Firebase Admin ------------------
-try {
+try{
   if (!admin.apps.length) {
-    // Always use service-account.json locally
-    const serviceAccountPath = path.join(__dirname, "service-account.json");
-    if (!require("fs").existsSync(serviceAccountPath)) {
-      throw new Error("service-account.json not found in backend folder!");
+    if (process.env.GOOGLE_CLOUD_PROJECT) {
+      // ✅ Running on Cloud Run → use default service account
+      admin.initializeApp();
+      console.log("🔥 Firebase Admin initialized with Cloud Run default credentials");
+    } else {
+      // ✅ Running locally → use service-account.json
+      const serviceAccountPath = path.join(__dirname, "service-account.json");
+      if (!require("fs").existsSync(serviceAccountPath)) {
+        throw new Error("service-account.json not found in backend folder!");
+      }
+      const serviceAccount = require(serviceAccountPath);
+      admin.initializeApp({
+        credential: admin.credential.cert(serviceAccount),
+      });
+      console.log("🔥 Firebase Admin initialized with local service-account.json");
     }
-    const serviceAccount = require(serviceAccountPath);
-    admin.initializeApp({
-      credential: admin.credential.cert(serviceAccount),
-    });
-    console.log("🔥 Firebase Admin initialized");
   }
 } catch (err) {
   console.error("⚠️ Failed to initialize Firebase Admin", err);
 }
 
 const db = admin.firestore();
+
 
 // ------------------ Routes ------------------
 app.get("/", (req, res) => res.send("Welcome to the backend API!"));
@@ -137,3 +145,4 @@ if (require.main === module) {
 }
 
 module.exports = app;
+
