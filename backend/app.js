@@ -8,24 +8,19 @@ require("dotenv").config();
 const app = express();
 
 // ------------------ CORS ------------------
-// Allow your frontend or local dev server
 const allowedOrigins = [
-  "https://angular-projects3-937580556914.asia-south1.run.app", // your Cloud Run frontend
-  "http://localhost:4200" // optional for local dev
+  "https://angular-projects3-937580556914.asia-south1.run.app",
+  "http://localhost:4200"
 ];
 
 app.use(cors({
   origin: (origin, callback) => {
-    if (!origin || allowedOrigins.includes(origin)) {
-      callback(null, true);
-    } else {
-      callback(new Error("Not allowed by CORS"));
-    }
+    if (!origin || allowedOrigins.includes(origin)) callback(null, true);
+    else callback(new Error("Not allowed by CORS"));
   },
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"],
 }));
-// Handle preflight requests
 app.options("*", cors());
 
 // ------------------ Middleware ------------------
@@ -34,14 +29,15 @@ app.use(express.json());
 // ------------------ Firebase Admin ------------------
 try {
   if (!admin.apps.length) {
-    if (process.env.GCP_PROJECT) {
-      admin.initializeApp(); // Cloud Functions
-    } else {
-      const serviceAccount = require(path.join(__dirname, "service-account.json"));
-      admin.initializeApp({
-        credential: admin.credential.cert(serviceAccount),
-      });
+    // Always use service-account.json locally
+    const serviceAccountPath = path.join(__dirname, "service-account.json");
+    if (!require("fs").existsSync(serviceAccountPath)) {
+      throw new Error("service-account.json not found in backend folder!");
     }
+    const serviceAccount = require(serviceAccountPath);
+    admin.initializeApp({
+      credential: admin.credential.cert(serviceAccount),
+    });
     console.log("🔥 Firebase Admin initialized");
   }
 } catch (err) {
@@ -96,7 +92,7 @@ app.get("/users", async (req, res) => {
     res.json(users);
   } catch (error) {
     console.error("Error fetching users:", error);
-    res.status(500).json({ error: "Something went wrong" });
+    res.status(500).json({ error: error.message });
   }
 });
 
@@ -107,7 +103,7 @@ app.post("/users", async (req, res) => {
     res.json({ id: docRef.id, ...newUser });
   } catch (error) {
     console.error("Error adding user:", error);
-    res.status(500).json({ error: "Something went wrong" });
+    res.status(500).json({ error: error.message });
   }
 });
 
@@ -119,7 +115,7 @@ app.put("/users/:id", async (req, res) => {
     res.json({ id, ...updates });
   } catch (error) {
     console.error("Error updating user:", error);
-    res.status(500).json({ error: "Something went wrong" });
+    res.status(500).json({ error: error.message });
   }
 });
 
@@ -130,7 +126,7 @@ app.delete("/users/:id", async (req, res) => {
     res.json({ id, message: "User deleted" });
   } catch (error) {
     console.error("Error deleting user:", error);
-    res.status(500).json({ error: "Something went wrong" });
+    res.status(500).json({ error: error.message });
   }
 });
 

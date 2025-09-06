@@ -5,7 +5,7 @@ WORKDIR /app
 # Copy Angular package files
 COPY package.json package-lock.json ./
 
-# Install Angular dependencies (force install to bypass peer conflicts)
+# Install Angular dependencies
 RUN npm install --legacy-peer-deps
 
 # Copy Angular source files
@@ -21,12 +21,17 @@ WORKDIR /app
 # Copy Angular build from Stage 1
 COPY --from=builder /app/dist/angular-localstorage-table ./dist/angular-localstorage-table
 
-# Copy backend server files
+# Copy backend files
 COPY server.js ./
-COPY backend/package*.json ./
+COPY backend ./backend/          
+COPY backend/service-account.json ./backend/service-account.json
 
-# Install only backend dependencies
+# Install backend dependencies
+WORKDIR /app/backend
 RUN npm install --legacy-peer-deps --omit=dev
+
+# Move back to /app
+WORKDIR /app
 
 # Expose Cloud Run port
 EXPOSE 8080
