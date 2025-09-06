@@ -24,7 +24,7 @@ COPY --from=builder /app/dist/angular-localstorage-table ./dist/angular-localsto
 # Copy backend and server
 COPY server.js ./server.js
 COPY backend ./backend
-COPY package.json package-lock.json ./  # Ensure backend dependencies are included
+COPY package.json package-lock.json ./  
 
 # Install only production dependencies
 RUN npm install --legacy-peer-deps --omit=dev
