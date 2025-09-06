@@ -10,8 +10,8 @@ const app = express();
 // ------------------ CORS ------------------
 // Allow your frontend or local dev server
 const allowedOrigins = [
-  "https://angular-project7-937580556914.asia-south1.run.app",
-  "http://localhost:4200",
+  "https://angular-projects3-937580556914.asia-south1.run.app", // your Cloud Run frontend
+  "http://localhost:4200" // optional for local dev
 ];
 
 app.use(cors({
@@ -25,7 +25,6 @@ app.use(cors({
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"],
 }));
-
 // Handle preflight requests
 app.options("*", cors());
 
