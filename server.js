@@ -18,6 +18,7 @@ app.get(/^\/(?!api).*$/, (req, res) => {
   res.sendFile(path.join(__dirname, 'dist/angular-localstorage-table/index.html'));
 });
 
-app.listen(port, () => {
-  console.log(`🚀 Server is running at http://localhost:${port}`);
+// Bind to 0.0.0.0 for Cloud Run
+app.listen(port, '0.0.0.0', () => {
+  console.log(`🚀 Server is running at http://0.0.0.0:${port}`);
 });
