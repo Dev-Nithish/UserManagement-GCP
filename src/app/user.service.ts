@@ -19,7 +19,8 @@ export interface User {
   providedIn: 'root'
 })
 export class UserService {
-  private apiUrl = environment.apiBaseUrl;  // 👈 dynamic base URL
+  private apiUrl =  "https://us-central1-angular-project6-937580556914.cloudfunctions.net/api/users";
+ // 👈 dynamic base URL
 
   constructor(private http: HttpClient) {}
 
