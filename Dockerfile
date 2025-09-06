@@ -5,7 +5,7 @@ WORKDIR /app
 # Copy Angular package files
 COPY package.json package-lock.json ./
 
-# Install Angular dependencies
+# Install Angular dependencies (force install to bypass peer conflicts)
 RUN npm install --legacy-peer-deps
 
 # Copy Angular source files
@@ -18,12 +18,15 @@ RUN npm run build -- --output-path=./dist/angular-localstorage-table
 FROM node:20-alpine
 WORKDIR /app
 
-# Copy Angular build from Stage 1
+# Copy Angular build
 COPY --from=builder /app/dist/angular-localstorage-table ./dist/angular-localstorage-table
 
 # Copy backend server files
 COPY server.js ./
 COPY backend ./backend/
+
+# ✅ Copy only backend's package.json to root for npm install
+COPY backend/package*.json ./
 
 # Install only backend dependencies
 RUN npm install --legacy-peer-deps --omit=dev
@@ -33,3 +36,4 @@ EXPOSE 8080
 
 # Start Express server
 CMD ["node", "server.js"]
+
