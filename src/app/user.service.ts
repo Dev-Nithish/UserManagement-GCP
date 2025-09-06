@@ -1,11 +1,9 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { from, Observable } from 'rxjs';
-import { switchMap } from 'rxjs/operators';
+import { map, switchMap } from 'rxjs/operators';
 import { getAuth } from 'firebase/auth';
 import { environment } from '../environments/environment';
-
-
 
 export interface User {
   id?: string;
@@ -19,8 +17,8 @@ export interface User {
   providedIn: 'root'
 })
 export class UserService {
-  private apiUrl =  "https://us-central1-angular-project6-937580556914.cloudfunctions.net/api/users";
- // 👈 dynamic base URL
+  // ✅ Removed "/api" → backend already serves /users
+  private apiUrl = "https://us-central1-angular-project6-937580556914.cloudfunctions.net";
 
   constructor(private http: HttpClient) {}
 
@@ -32,7 +30,7 @@ export class UserService {
     }
 
     return from(auth.currentUser.getIdToken(true)).pipe(
-      switchMap(token => [new HttpHeaders({ Authorization: `Bearer ${token}` })])
+      map(token => new HttpHeaders({ Authorization: `Bearer ${token}` }))
     );
   }
 

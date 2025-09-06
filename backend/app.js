@@ -8,13 +8,19 @@ require("dotenv").config();
 
 const app = express();
 
-// ✅ Enable CORS for all routes (can replace "*" with your frontend URL if needed)
-app.use(cors({ origin: "*" }));
+// ✅ Enable CORS only for your frontend (Cloud Run URL)
+app.use(
+  cors({
+    origin: "https://angular-project7-937580556914.asia-south1.run.app",
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+  })
+);
 
 // Middleware to parse JSON
 app.use(express.json());
 
-// ✅ Initialize Firebase Admin (local or cloud)
+// ✅ Initialize Firebase Admin
 try {
   if (!admin.apps.length) {
     if (process.env.GCP_PROJECT) {
@@ -22,7 +28,10 @@ try {
       admin.initializeApp();
     } else {
       // Running locally → use service-account.json
-      const serviceAccount = require(path.join(__dirname, "service-account.json"));
+      const serviceAccount = require(path.join(
+        __dirname,
+        "service-account.json"
+      ));
       admin.initializeApp({
         credential: admin.credential.cert(serviceAccount),
       });
@@ -147,7 +156,10 @@ app.post("/backupUsers", async (req, res) => {
     const file = bucket.file("users.json");
     await file.save(JSON.stringify(users, null, 2));
 
-    res.json({ message: "Backup complete", file: `gs://${bucketName}/users.json` });
+    res.json({
+      message: "Backup complete",
+      file: `gs://${bucketName}/users.json`,
+    });
   } catch (err) {
     console.error("Error backing up users:", err);
     res.status(500).json({ error: "Backup failed" });
