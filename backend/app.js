@@ -3,7 +3,6 @@ const cors = require("cors");
 const admin = require("firebase-admin");
 const path = require("path");
 const fetch = require("node-fetch");
-const { Storage } = require("@google-cloud/storage");
 require("dotenv").config();
 
 const app = express();
@@ -54,7 +53,6 @@ const db = admin.firestore();
 
 // ------------------ Routes ------------------
 app.get("/", (req, res) => res.send("Welcome to the backend API!"));
-
 app.get("/health", (req, res) => res.json({ status: "ok", message: "Backend working!" }));
 
 // ------------------ AUTH ------------------
@@ -95,7 +93,7 @@ app.post("/auth/login", async (req, res) => {
 app.get("/users", async (req, res) => {
   try {
     const snapshot = await db.collection("users").get();
-    const users = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+    const users = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     res.json(users);
   } catch (error) {
     console.error("Error fetching users:", error);
@@ -136,9 +134,6 @@ app.delete("/users/:id", async (req, res) => {
     res.status(500).json({ error: "Something went wrong" });
   }
 });
-
-// ------------------ GCS Backup ------------------
-// Initialize if you want; leave as is for now
 
 // ------------------ Local Server ------------------
 const PORT = process.env.PORT || 8080;

@@ -1,9 +1,8 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { from, Observable } from 'rxjs';
-import { map, switchMap } from 'rxjs/operators';
+import { switchMap } from 'rxjs/operators';
 import { getAuth } from 'firebase/auth';
-import { environment } from '../environments/environment';
 
 export interface User {
   id?: string;
@@ -17,38 +16,34 @@ export interface User {
   providedIn: 'root'
 })
 export class UserService {
-  // ✅ Removed "/api" → backend already serves /users
-  private apiUrl = "https://us-central1-angular-project6-937580556914.cloudfunctions.net";
+  // ✅ Use exact backend deployed URL
+  private apiUrl = "https://us-central1-angular-project6-937580556914.cloudfunctions.net/api";
 
   constructor(private http: HttpClient) {}
 
-  // ✅ Always fetch fresh Firebase token
+  // Always fetch fresh Firebase token
   private getAuthHeaders(): Observable<HttpHeaders> {
     const auth = getAuth();
-    if (!auth.currentUser) {
-      throw new Error('No user logged in');
-    }
+    if (!auth.currentUser) throw new Error('No user logged in');
 
     return from(auth.currentUser.getIdToken(true)).pipe(
-      map(token => new HttpHeaders({ Authorization: `Bearer ${token}` }))
+      switchMap(token => [new HttpHeaders({ Authorization: `Bearer ${token}` })])
     );
   }
 
-  // 🔥 Get all users
+  // 🔥 CRUD Operations
   getUsers(): Observable<User[]> {
     return this.getAuthHeaders().pipe(
       switchMap(headers => this.http.get<User[]>(`${this.apiUrl}/users`, { headers }))
     );
   }
 
-  // ➕ Add new user
   addUser(user: User): Observable<User> {
     return this.getAuthHeaders().pipe(
       switchMap(headers => this.http.post<User>(`${this.apiUrl}/users`, user, { headers }))
     );
   }
 
-  // ✏️ Update existing user
   updateUser(user: User): Observable<User> {
     if (!user.id) throw new Error('User ID is missing');
     return this.getAuthHeaders().pipe(
@@ -56,7 +51,6 @@ export class UserService {
     );
   }
 
-  // ❌ Delete user
   deleteUser(id: string): Observable<void> {
     return this.getAuthHeaders().pipe(
       switchMap(headers => this.http.delete<void>(`${this.apiUrl}/users/${id}`, { headers }))
