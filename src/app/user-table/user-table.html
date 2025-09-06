@@ -1,5 +1,9 @@
 <mat-toolbar color="primary">
-
+  User Management
+  <span class="spacer"></span>
+  <button mat-icon-button color="accent" (click)="toggleListening()">
+    <mat-icon>{{ isListening ? 'mic_off' : 'mic' }}</mat-icon>
+  </button>
 </mat-toolbar>
 
 <!-- ===================== User Form ===================== -->
@@ -27,38 +31,35 @@
       <button mat-raised-button color="primary" type="submit">
         {{ editMode ? 'Update' : 'Add' }} User
       </button>
-      @if (editMode) {
-        <button mat-stroked-button color="warn" type="button" (click)="resetForm()">
-          Cancel
-        </button>
-      }
+      <button *ngIf="editMode" mat-stroked-button color="warn" type="button" (click)="resetForm()">
+        Cancel
+      </button>
     </mat-card-actions>
   </mat-card>
 </form>
 
 <!-- ===================== Users Table ===================== -->
-@if ((displayedUsers)?.length ?? 0 > 0) {
+<ng-container *ngIf="displayedUsers?.length > 0; else emptyState">
   <mat-card class="user-table-card">
     <mat-card-title>Users List</mat-card-title>
 
     <!-- Button Row (Sort, Filter, Export, Import) -->
-<div class="button-row">
-  <button mat-raised-button color="primary" (click)="toggleSort()">
-    Sort ({{ sortMode || 'none' }})
-  </button>
-  <button mat-raised-button color="accent" (click)="toggleFilter()">
-    Filter ({{ filterMode || 'none' }})
-  </button>
-  <button mat-raised-button color="primary" (click)="exportToExcel()">
-    Export to Excel
-  </button>
-  <button mat-stroked-button color="accent" (click)="triggerFileInput()">
-    Import from CSV/Excel
-  </button>
-</div>
+    <div class="button-row">
+      <button mat-raised-button color="primary" (click)="toggleSort()">
+        Sort ({{ sortMode || 'none' }})
+      </button>
+      <button mat-raised-button color="accent" (click)="toggleFilter()">
+        Filter ({{ filterMode || 'none' }})
+      </button>
+      <button mat-raised-button color="primary" (click)="exportToExcel()">
+        Export to Excel
+      </button>
+      <button mat-stroked-button color="accent" (click)="triggerFileInput()">
+        Import from CSV/Excel
+      </button>
+    </div>
 
-<input type="file" accept=".csv, .xlsx" (change)="importFile($event)" id="importFile" hidden />
-
+    <input type="file" accept=".csv, .xlsx" (change)="importFile($event)" id="importFile" hidden />
 
     <div class="table-container">
       <table mat-table [dataSource]="displayedUsers" class="mat-elevation-z8">
@@ -100,16 +101,11 @@
       </table>
     </div>
   </mat-card>
-} @else {
+</ng-container>
+
+<ng-template #emptyState>
   <mat-card class="empty-state">
     <mat-icon>person_off</mat-icon>
     <p>No users added yet. Start by adding a new user above 👆</p>
   </mat-card>
-}
-<mat-toolbar color="primary">
-  User Management
-  <span class="spacer"></span>
-  <button mat-icon-button color="accent" (click)="toggleListening()">
-    <mat-icon>{{ isListening ? 'mic_off' : 'mic' }}</mat-icon>
-  </button>
-</mat-toolbar>
+</ng-template>
