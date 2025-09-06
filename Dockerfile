@@ -5,7 +5,7 @@ WORKDIR /app
 
 # Copy Angular package files and install dependencies
 COPY package*.json ./
-RUN npm install
+RUN npm install --legacy-peer-deps
 
 # Copy Angular source code and build
 COPY . .
@@ -22,7 +22,7 @@ COPY backend ./backend
 # Install backend dependencies
 WORKDIR /app/backend
 COPY backend/package*.json ./
-RUN npm install --omit=dev
+RUN npm install --omit=dev --legacy-peer-deps
 
 # Copy built Angular dist from build stage
 WORKDIR /app
