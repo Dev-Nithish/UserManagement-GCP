@@ -2,13 +2,11 @@
 FROM node:20 AS builder
 WORKDIR /app
 
-# Copy Angular package files
+# Copy Angular package files (frontend)
 COPY package.json package-lock.json ./
+RUN npm install
 
-# Install Angular dependencies
-RUN npm install --legacy-peer-deps
-
-# Copy Angular source files
+# Copy all source code
 COPY . .
 
 # Build Angular for production
@@ -18,22 +16,18 @@ RUN npm run build -- --output-path=./dist/angular-localstorage-table
 FROM node:20-alpine
 WORKDIR /app
 
-# Copy Angular build from Stage 1
+# Copy Angular build output from builder stage
 COPY --from=builder /app/dist/angular-localstorage-table ./dist/angular-localstorage-table
 
-# Copy backend server files
+# Copy server and backend dependencies
 COPY server.js ./
-COPY backend/package.json backend/package-lock.json ./backend/
+COPY backend/package*.json ./
 
 # Install only backend dependencies
-WORKDIR /app/backend
-RUN npm install --legacy-peer-deps
+RUN npm install --legacy-peer-deps --omit=dev
 
-# Return to app root
-WORKDIR /app
-
-# Expose Cloud Run port
+# Expose port expected by Cloud Run
 EXPOSE 8080
 
-# Start Express server
+# Start the server
 CMD ["node", "server.js"]
