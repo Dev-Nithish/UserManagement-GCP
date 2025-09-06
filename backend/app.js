@@ -2,36 +2,44 @@ const express = require("express");
 const cors = require("cors");
 const admin = require("firebase-admin");
 const path = require("path");
-const fetch = require("node-fetch"); // Firebase REST API for login
+const fetch = require("node-fetch");
 const { Storage } = require("@google-cloud/storage");
 require("dotenv").config();
 
 const app = express();
 
-// ✅ Enable CORS only for your frontend (Cloud Run URL)
-app.use(
-  cors({
-    origin: "https://angular-project7-937580556914.asia-south1.run.app",
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"],
-  })
-);
+// ------------------ CORS ------------------
+// Allow your frontend or local dev server
+const allowedOrigins = [
+  "https://angular-project7-937580556914.asia-south1.run.app",
+  "http://localhost:4200",
+];
 
-// Middleware to parse JSON
+app.use(cors({
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error("Not allowed by CORS"));
+    }
+  },
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+}));
+
+// Handle preflight requests
+app.options("*", cors());
+
+// ------------------ Middleware ------------------
 app.use(express.json());
 
-// ✅ Initialize Firebase Admin
+// ------------------ Firebase Admin ------------------
 try {
   if (!admin.apps.length) {
     if (process.env.GCP_PROJECT) {
-      // Running on Cloud Functions → default credentials
-      admin.initializeApp();
+      admin.initializeApp(); // Cloud Functions
     } else {
-      // Running locally → use service-account.json
-      const serviceAccount = require(path.join(
-        __dirname,
-        "service-account.json"
-      ));
+      const serviceAccount = require(path.join(__dirname, "service-account.json"));
       admin.initializeApp({
         credential: admin.credential.cert(serviceAccount),
       });
@@ -44,19 +52,12 @@ try {
 
 const db = admin.firestore();
 
-// ------------------ ROUTES ------------------
+// ------------------ Routes ------------------
+app.get("/", (req, res) => res.send("Welcome to the backend API!"));
 
-app.get("/", (req, res) => {
-  res.send("Welcome to the backend API!");
-});
+app.get("/health", (req, res) => res.json({ status: "ok", message: "Backend working!" }));
 
-app.get("/health", (req, res) => {
-  res.json({ status: "ok", message: "Backend working!" });
-});
-
-// ------------------ AUTH ROUTES ------------------
-
-// Signup
+// ------------------ AUTH ------------------
 app.post("/auth/signup", async (req, res) => {
   const { email, password } = req.body;
   try {
@@ -69,13 +70,10 @@ app.post("/auth/signup", async (req, res) => {
   }
 });
 
-// Login
 app.post("/auth/login", async (req, res) => {
   const { email, password } = req.body;
   try {
-    if (!process.env.FIREBASE_API_KEY) {
-      throw new Error("Set FIREBASE_API_KEY in your environment variables");
-    }
+    if (!process.env.FIREBASE_API_KEY) throw new Error("FIREBASE_API_KEY missing");
     const response = await fetch(
       `https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${process.env.FIREBASE_API_KEY}`,
       {
@@ -93,8 +91,7 @@ app.post("/auth/login", async (req, res) => {
   }
 });
 
-// ------------------ USER ROUTES ------------------
-
+// ------------------ USERS ------------------
 app.get("/users", async (req, res) => {
   try {
     const snapshot = await db.collection("users").get();
@@ -109,10 +106,7 @@ app.get("/users", async (req, res) => {
 app.post("/users", async (req, res) => {
   try {
     const newUser = req.body;
-    const docRef = await db.collection("users").add({
-      ...newUser,
-      createdAt: Date.now(),
-    });
+    const docRef = await db.collection("users").add({ ...newUser, createdAt: Date.now() });
     res.json({ id: docRef.id, ...newUser });
   } catch (error) {
     console.error("Error adding user:", error);
@@ -143,36 +137,13 @@ app.delete("/users/:id", async (req, res) => {
   }
 });
 
-// ------------------ GCS BACKUP ROUTE ------------------
+// ------------------ GCS Backup ------------------
+// Initialize if you want; leave as is for now
 
-app.post("/backupUsers", async (req, res) => {
-  if (!bucket) {
-    return res.status(500).json({ error: "GCS not configured" });
-  }
-  try {
-    const snapshot = await db.collection("users").get();
-    const users = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
-
-    const file = bucket.file("users.json");
-    await file.save(JSON.stringify(users, null, 2));
-
-    res.json({
-      message: "Backup complete",
-      file: `gs://${bucketName}/users.json`,
-    });
-  } catch (err) {
-    console.error("Error backing up users:", err);
-    res.status(500).json({ error: "Backup failed" });
-  }
-});
-
-// ------------------ LOCAL vs CLOUD FUNCTION ------------------
-
+// ------------------ Local Server ------------------
 const PORT = process.env.PORT || 8080;
-
 if (require.main === module) {
-  app.listen(PORT, () => {
-    console.log(`🚀 Backend running at http://localhost:${PORT}`);
-  });
+  app.listen(PORT, () => console.log(`🚀 Backend running at http://localhost:${PORT}`));
 }
+
 module.exports = app;
