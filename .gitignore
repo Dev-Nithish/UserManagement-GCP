@@ -41,5 +41,4 @@ testem.log
 Thumbs.db
 
 # Backend secrets (never commit these!)
-backend/service-account.json
 backend/.env

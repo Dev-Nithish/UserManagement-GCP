@@ -27,10 +27,8 @@ WORKDIR /app/backend
 COPY backend/package*.json ./
 RUN npm install --omit=dev --legacy-peer-deps
 
-# Copy backend code
+# Copy backend code **without creating nested folder**
 COPY backend/ ./
-COPY backend/ ./service-account.json
-
 
 # Copy built Angular frontend from build stage
 COPY --from=build /app/dist ./dist
