@@ -1,34 +1,42 @@
-# Stage 1: Build Angular app
+# -----------------------------
+# Stage 1: Build Angular frontend
+# -----------------------------
 FROM node:20 AS build
 
 WORKDIR /app
 
-# Install Angular dependencies (frontend)
+# Copy frontend dependencies (root package.json)
 COPY package*.json ./
 RUN npm install --legacy-peer-deps
 
-# Copy Angular source and build
-COPY . .
+# Copy all frontend source files
+COPY . ./
+
+# Build Angular app
 RUN npm run build -- --configuration production --project=angular-localstorage-table
 
+# -----------------------------
 # Stage 2: Runtime container
+# -----------------------------
 FROM node:20
 
-WORKDIR /app
+# Set working directory to backend
+WORKDIR /app/backend
 
 # Copy backend dependencies and install
-COPY backend/package*.json ./backend/
-RUN cd backend && npm install --omit=dev --legacy-peer-deps
-COPY backend ./backend
+COPY backend/package*.json ./
+RUN npm install --omit=dev --legacy-peer-deps
 
-# Copy built Angular dist from build stage
+# Copy backend code
+COPY backend/ ./
+COPY backend/ ./service-account.json
+
+
+# Copy built Angular frontend from build stage
 COPY --from=build /app/dist ./dist
 
-# Copy server.js
-COPY server.js .
-
-# Expose port for Cloud Run
+# Expose port for GCP Cloud Run
 EXPOSE 8080
 
-# Start the app
+# Start the backend server
 CMD ["node", "server.js"]
