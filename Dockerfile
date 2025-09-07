@@ -9,7 +9,7 @@ RUN npm install --legacy-peer-deps
 
 # Copy Angular source and build
 COPY . .
-RUN npm run build -- --configuration production --project=angular-localstoarge-table
+RUN npm run build -- --configuration production --project=angular-localstorage-table
 
 # Stage 2: Runtime container
 FROM node:20
