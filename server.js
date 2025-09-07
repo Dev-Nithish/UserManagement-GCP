@@ -10,12 +10,12 @@ const port = process.env.PORT || 8080;
 // API routes
 app.use('/api', apiApp);
 
-// Serve Angular frontend (dist path must include /browser)
-app.use(express.static(path.join(__dirname, 'dist/angular-localstoarge-table/browser')));
+// Serve Angular frontend (no /browser!)
+app.use(express.static(path.join(__dirname, 'dist/angular-localstoarge-table')));
 
 // Angular routes fallback (except /api)
 app.get(/^\/(?!api).*$/, (req, res) => {
-  res.sendFile(path.join(__dirname, 'dist/angular-localstoarge-table/browser/index.html'));
+  res.sendFile(path.join(__dirname, 'dist/angular-localstoarge-table/index.html'));
 });
 
 // Health check for Cloud Run
