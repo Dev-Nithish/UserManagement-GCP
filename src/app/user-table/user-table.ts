@@ -13,6 +13,7 @@ import { saveAs } from 'file-saver';
 import { UserService, User } from '../user.service';
 import { Observable } from 'rxjs';
 import { take } from 'rxjs/operators';
+import { Timestamp } from 'firebase/firestore';
 
 declare var webkitSpeechRecognition: any;
 
@@ -48,37 +49,39 @@ export class UserTableComponent implements OnInit {
   constructor(private userService: UserService, private snackBar: MatSnackBar) {}
 
   ngOnInit() {
-    // Load users normally
+    this.loadUsers();
+    this.setupSpeechRecognition();
+  }
+
+  private loadUsers() {
     this.users$ = this.userService.getUsers();
     this.users$.subscribe(users => {
       this.displayedUsers = [...users];
       this.applySortAndFilter();
     });
+  }
 
-    // ✅ Setup Speech Recognition
+  private setupSpeechRecognition() {
     const SpeechRecognition =
       (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-    if (SpeechRecognition) {
-      this.recognition = new SpeechRecognition();
-      this.recognition.lang = 'en-US';
-      this.recognition.interimResults = false;
-      this.recognition.continuous = false;
+    if (!SpeechRecognition) return;
 
-      this.recognition.onresult = (event: any) => {
-        const transcript: string = event.results[0][0].transcript.toLowerCase();
-        console.log('🎤 Heard:', transcript);
-        this.handleSpeechResult(transcript);
-      };
+    this.recognition = new SpeechRecognition();
+    this.recognition.lang = 'en-US';
+    this.recognition.interimResults = false;
+    this.recognition.continuous = false;
 
-      this.recognition.onerror = (event: any) => {
-        console.error('Speech recognition error:', event.error);
-      };
-    }
+    this.recognition.onresult = (event: any) => {
+      const transcript: string = event.results[0][0].transcript.toLowerCase();
+      this.handleSpeechResult(transcript);
+    };
+
+    this.recognition.onerror = (event: any) => console.error('Speech recognition error:', event.error);
   }
 
   // ================= CRUD =================
   addOrUpdateUser() {
-    const userWithTimestamp = { ...this.newUser, createdAt: Date.now() };
+    const userWithTimestamp: User = { ...this.newUser, createdAt: Timestamp.now() };
     if (this.editMode && this.editingUserId) {
       this.userService.updateUser({ ...userWithTimestamp, id: this.editingUserId }).subscribe({
         next: () => {
@@ -179,7 +182,7 @@ export class UserTableComponent implements OnInit {
 
           if (!name || isNaN(age) || !contact) return;
 
-          const user: User = { name, age, contact, createdAt: Date.now() };
+          const user: User = { name, age, contact, createdAt: Timestamp.now() };
           this.userService.addUser(user).subscribe({
             next: () => this.refreshUsers(),
             error: (err) => console.error('Error adding user from import:', err)
@@ -213,8 +216,8 @@ export class UserTableComponent implements OnInit {
     this.users$.pipe(take(1)).subscribe(users => {
       let result = [...users];
 
-      if (this.filterMode === 'recent') result.sort((a, b) => (b.createdAt ?? 0) - (a.createdAt ?? 0));
-      else if (this.filterMode === 'oldest') result.sort((a, b) => (a.createdAt ?? 0) - (b.createdAt ?? 0));
+      if (this.filterMode === 'recent') result.sort((a, b) => (b.createdAt?.toMillis() ?? 0) - (a.createdAt?.toMillis() ?? 0));
+      else if (this.filterMode === 'oldest') result.sort((a, b) => (a.createdAt?.toMillis() ?? 0) - (b.createdAt?.toMillis() ?? 0));
       else if (this.filterMode === 'adults') result = result.filter(u => u.age >= 18);
 
       if (this.sortMode === 'name') result.sort((a, b) => a.name.localeCompare(b.name));
@@ -227,19 +230,16 @@ export class UserTableComponent implements OnInit {
   // ================= Voice Control =================
   toggleListening() {
     this.isListening = !this.isListening;
-    if (this.isListening) {
-      this.startListening();
-    } else {
-      this.stopListening();
-    }
+    if (this.isListening) this.startListening();
+    else this.stopListening();
   }
 
   startListening() {
-    if (this.recognition) this.recognition.start();
+    this.recognition?.start();
   }
 
   stopListening() {
-    if (this.recognition) this.recognition.stop();
+    this.recognition?.stop();
   }
 
   handleSpeechResult(transcript: string) {
@@ -253,17 +253,17 @@ export class UserTableComponent implements OnInit {
       const contactMatch = transcript.match(/contact\s+(\d+)/);
 
       const name = nameMatch ? nameMatch[1] : '';
-      const age = ageMatch ? parseInt(ageMatch[1], 10) : null;
+      const age = ageMatch ? parseInt(ageMatch[1], 10) : 0;
       const contact = contactMatch ? contactMatch[1] : '';
 
       if (name) {
-        this.userService.addUser({ name, age: age ?? 0, contact }).subscribe({
-          next: () => {
-            this.snackBar.open(`✅ User ${name} added successfully`, 'Close', { duration: 3000 });
-            this.refreshUsers();
-          },
-          error: (err) => console.error('Add user error:', err)
-        });
+        this.userService.addUser({ name, age, contact, createdAt: Timestamp.now() }).subscribe({
+                      next: () => {
+              this.snackBar.open(`✅ User ${name} added successfully`, 'Close', { duration: 3000 });
+              this.refreshUsers();
+            },
+            error: (err) => console.error('Add user error:', err)
+          });
       } else {
         this.snackBar.open(
           '❌ Could not understand. Try saying: "name Ram age 20 contact 98765"',
@@ -308,7 +308,7 @@ export class UserTableComponent implements OnInit {
         this.users$.pipe(take(1)).subscribe(users => {
           const user = users.find(u => u.name.toLowerCase() === nameToUpdate.toLowerCase());
           if (user && user.id) {
-            const updatedUser = { ...user };
+            const updatedUser: User = { ...user };
             if (ageMatch) updatedUser.age = parseInt(ageMatch[1], 10);
             if (contactMatch) updatedUser.contact = contactMatch[1];
 
