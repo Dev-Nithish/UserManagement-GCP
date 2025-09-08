@@ -27,13 +27,13 @@ WORKDIR /app/backend
 COPY backend/package*.json ./
 RUN npm install --omit=dev --legacy-peer-deps
 
-# Copy backend code **without creating nested folder**
+# Copy backend code
 COPY backend/ ./
 
 # Copy built Angular frontend from build stage
 COPY --from=build /app/dist ./dist
 
-# Expose port for GCP Cloud Run
+# Expose port for clarity (Cloud Run uses $PORT)
 EXPOSE 8080
 
 # Start the backend server
