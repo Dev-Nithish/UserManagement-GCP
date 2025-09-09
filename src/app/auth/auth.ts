@@ -1,51 +1,53 @@
-import { Component } from '@angular/core';
-import { FormsModule } from '@angular/forms';
-import { CommonModule } from '@angular/common';
-import { MatCardModule } from '@angular/material/card';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
-import { MatButtonModule } from '@angular/material/button';
-import { AuthService } from '../auth.service';
+// src/app/auth/auth.ts
+import { Injectable } from '@angular/core';
+import { BehaviorSubject, Observable } from 'rxjs';
 
-@Component({
-  selector: 'app-auth',
-  standalone: true,
-  imports: [CommonModule, FormsModule, MatCardModule, MatFormFieldModule, MatInputModule, MatButtonModule],
-  templateUrl: './auth.html',
-  styleUrls: ['./auth.css']
-})
-export class AuthComponent {
-  mode: 'landing' | 'login' | 'signup' = 'landing';
-  email = '';
-  password = '';
-  name = '';
-  message = '';
+@Injectable({ providedIn: 'root' })
+export class AuthService {
+  private clientId = 'YOUR_GCP_CLIENT_ID.apps.googleusercontent.com';
+  private redirectUri = 'http://localhost:4200';
+  private scope = 'openid email profile';
 
-  constructor(private auth: AuthService) {}
+  // Observable for template
+  private userSubject = new BehaviorSubject<any>(null);
+  user$: Observable<any> = this.userSubject.asObservable();
 
-  goLogin() { this.mode = 'login'; this.message = ''; }
-  goSignup() { this.mode = 'signup'; this.message = ''; }
-  back() { this.mode = 'landing'; this.message = ''; }
-
-  async submitLogin() {
-    this.message = '';
-    try {
-      await this.auth.login(this.email, this.password);
-      // AppComponent will auto-switch when auth state changes
-    } catch (e: any) {
-      this.message = e?.message ?? 'Login failed';
+  constructor() {
+    // Check token on service init
+    const token = localStorage.getItem('gcp_token');
+    if (token) {
+      this.userSubject.next({ token });
     }
   }
 
-  async submitSignup() {
-    this.message = '';
-    try {
-      await this.auth.signup(this.email, this.password);
-      // Optional: save display name to Firestore later if needed
-      this.message = 'Signup successful! You can now login.';
-      this.mode = 'login';
-    } catch (e: any) {
-      this.message = e?.message ?? 'Signup failed';
+  login() {
+    const authUrl =
+      `https://accounts.google.com/o/oauth2/v2/auth?` +
+      `client_id=${this.clientId}&` +
+      `redirect_uri=${encodeURIComponent(this.redirectUri)}&` +
+      `response_type=token&` +
+      `scope=${encodeURIComponent(this.scope)}`;
+    window.location.href = authUrl;
+  }
+
+  handleAuthCallback() {
+    if (window.location.hash) {
+      const params = new URLSearchParams(window.location.hash.slice(1));
+      const token = params.get('access_token');
+      if (token) {
+        localStorage.setItem('gcp_token', token);
+        this.userSubject.next({ token });
+        console.log('✅ Logged in, token saved:', token);
+      }
     }
+  }
+
+  logout() {
+    localStorage.removeItem('gcp_token');
+    this.userSubject.next(null);
+  }
+
+  getToken(): string | null {
+    return localStorage.getItem('gcp_token');
   }
 }

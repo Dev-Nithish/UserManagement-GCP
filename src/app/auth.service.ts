@@ -1,52 +1,60 @@
+// src/app/auth/auth.service.ts
 import { Injectable } from '@angular/core';
-import { BehaviorSubject } from 'rxjs';
-import {
-  Auth,
-  createUserWithEmailAndPassword,
-  signInWithEmailAndPassword,
-  signOut,
-  User
-} from '@angular/fire/auth';
+import { Router } from '@angular/router';
+import { BehaviorSubject, Observable } from 'rxjs';
+
+// 👉 Google Identity Services (GIS) SDK
+declare const google: any;
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
-  private _user$ = new BehaviorSubject<User | null>(null);
-  user$ = this._user$.asObservable();
+  private tokenKey = 'gcp_id_token';
 
-  constructor(private afAuth: Auth) {
-    // Listen for login/logout changes automatically
-    this.afAuth.onAuthStateChanged((user) => {
-      this._user$.next(user);
+  // ✅ Observable for template
+  private userSubject = new BehaviorSubject<any>(null);
+  user$: Observable<any> = this.userSubject.asObservable();
+
+  constructor(private router: Router) {
+    const token = localStorage.getItem(this.tokenKey);
+    if (token) this.userSubject.next({ token });
+  }
+
+  // 🔑 Trigger Google Login
+  login() {
+    google.accounts.id.initialize({
+      client_id: 'YOUR_GCP_CLIENT_ID.apps.googleusercontent.com',
+      callback: (response: any) => this.handleAuthCallback(response),
     });
+
+    google.accounts.id.prompt(); // shows One Tap or popup
   }
 
-  // 🔐 Signup
-  async signup(email: string, password: string) {
-    const userCredential = await createUserWithEmailAndPassword(this.afAuth, email, password);
-    this._user$.next(userCredential.user);
-    return userCredential.user;
-  }
+  // 📥 Handle login response
+  handleAuthCallback(response?: any) {
+    const token = response?.credential || localStorage.getItem(this.tokenKey);
+    if (response?.credential) {
+      localStorage.setItem(this.tokenKey, response.credential);
+      this.userSubject.next({ token: response.credential });
+      console.log('✅ Google ID Token stored:', response.credential);
 
-  // 🔑 Login
-  async login(email: string, password: string) {
-    const userCredential = await signInWithEmailAndPassword(this.afAuth, email, password);
-    this._user$.next(userCredential.user);
-    return userCredential.user;
+      this.router.navigate(['/users']);
+    }
   }
 
   // 🚪 Logout
-  async logout() {
-    await signOut(this.afAuth);
-    this._user$.next(null);
+  logout() {
+    localStorage.removeItem(this.tokenKey);
+    this.userSubject.next(null);
+    this.router.navigate(['/login']);
   }
 
-  // 👤 Get current user (Firebase User object)
-  get currentUser() {
-    return this._user$.value;
+  // 👤 Get token
+  getToken(): string | null {
+    return localStorage.getItem(this.tokenKey);
   }
 
   // ✅ Login status
-  isLoggedIn() {
-    return !!this._user$.value;
+  isLoggedIn(): boolean {
+    return !!this.getToken();
   }
 }

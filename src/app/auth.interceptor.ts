@@ -1,3 +1,4 @@
+// src/app/auth/auth.interceptor.ts
 import { Injectable } from '@angular/core';
 import {
   HttpEvent,
@@ -5,34 +6,23 @@ import {
   HttpInterceptor,
   HttpRequest
 } from '@angular/common/http';
-import { Observable, from } from 'rxjs';
-import { switchMap } from 'rxjs/operators';
-import { Auth } from '@angular/fire/auth';
-import { getIdToken } from 'firebase/auth';
+import { Observable } from 'rxjs';
+import { AuthService } from './auth.service'; // import existing service
 
 @Injectable()
 export class AuthInterceptor implements HttpInterceptor {
-  constructor(private afAuth: Auth) {}
+  constructor(private authService: AuthService) {}
 
   intercept(req: HttpRequest<any>, next: HttpHandler): Observable<HttpEvent<any>> {
-    // Get the current user from Firebase Auth
-    const user = this.afAuth.currentUser;
+    const token = this.authService.getToken();
 
-    if (!user) {
-      // 🚫 Not logged in → forward request without token
+    if (token) {
+      const cloned = req.clone({
+        headers: req.headers.set('Authorization', `Bearer ${token}`)
+      });
+      return next.handle(cloned);
+    } else {
       return next.handle(req);
     }
-
-    // 🔑 Convert Promise to Observable → fetch a fresh ID token
-    return from(getIdToken(user, true)).pipe(
-      switchMap((token) => {
-        const cloned = req.clone({
-          setHeaders: {
-            Authorization: `Bearer ${token}`
-          }
-        });
-        return next.handle(cloned);
-      })
-    );
   }
 }

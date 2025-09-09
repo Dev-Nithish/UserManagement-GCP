@@ -1,35 +1,25 @@
-import { Component } from '@angular/core';
-import { FormsModule } from '@angular/forms';
+import { Component, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
-import { Auth, signInWithEmailAndPassword } from '@angular/fire/auth';
+import { AuthService } from '../auth.service';
 
 @Component({
   selector: 'app-login',
   template: `
     <h2>Login</h2>
-    <form (ngSubmit)="login()">
-      <input [(ngModel)]="email" name="email" placeholder="Email" required />
-      <input [(ngModel)]="password" name="password" type="password" placeholder="Password" required />
-      <button type="submit">Login</button>
-    </form>
-    <p>Don’t have an account? <a routerLink="/signup">Sign up</a></p>
+    <button (click)="login()">Login with Google</button>
   `,
-  standalone: true,
-  imports: [FormsModule]
+  standalone: true
 })
-export class LoginComponent {
-  email = '';
-  password = '';
+export class LoginComponent implements OnInit {
+  constructor(private auth: AuthService, private router: Router) {}
 
-  constructor(private auth: Auth, private router: Router) {}
-
-  async login() {
-    try {
-      await signInWithEmailAndPassword(this.auth, this.email, this.password);
-      this.router.navigate(['/users']); // redirect to table
-    } catch (err) {
-      console.error(err);
-      alert('Login failed');
+  ngOnInit(): void {
+    if (this.auth.isLoggedIn()) {
+      this.router.navigate(['/users']);
     }
+  }
+
+  login() {
+    this.auth.login();
   }
 }
