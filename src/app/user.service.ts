@@ -1,3 +1,4 @@
+// src/app/user.service.ts
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Observable } from 'rxjs';
@@ -7,7 +8,7 @@ export interface User {
   name: string;
   age: number;
   contact: string;
-  createdAt?: string; // ISO string from backend
+  createdAt?: string; // ✅ ISO string from backend
 }
 
 @Injectable({
@@ -20,9 +21,10 @@ export class UserService {
 
   // ✅ Helper to add Authorization header with GCP OAuth token
   private getHeaders(): HttpHeaders {
-    const token = localStorage.getItem('gcp_id_token'); // Token from AuthService
+    const token = localStorage.getItem('gcp_id_token'); // Token stored via AuthService
     return new HttpHeaders({
-      Authorization: token ? `Bearer ${token}` : ''
+      'Authorization': token ? `Bearer ${token}` : '',
+      'Content-Type': 'application/json'
     });
   }
 

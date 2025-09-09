@@ -13,7 +13,6 @@ import { saveAs } from 'file-saver';
 import { UserService, User } from '../user.service';
 import { Observable } from 'rxjs';
 import { take } from 'rxjs/operators';
-import { Timestamp } from 'firebase/firestore';
 
 declare var webkitSpeechRecognition: any;
 
@@ -108,7 +107,7 @@ export class UserTableComponent implements OnInit {
       const contact = contactMatch ? contactMatch[1] : '';
 
       if (name) {
-        this.userService.addUser({ name, age, contact, createdAt: Timestamp.now() }).subscribe({
+        this.userService.addUser({ name, age, contact, createdAt: new Date().toISOString() }).subscribe({
           next: () => {
             this.snackBar.open(`✅ User ${name} added successfully`, 'Close', { duration: 3000 });
             this.refreshUsers();
@@ -188,7 +187,7 @@ export class UserTableComponent implements OnInit {
 
   // ================= CRUD =================
   addOrUpdateUser() {
-    const userWithTimestamp: User = { ...this.newUser, createdAt: Timestamp.now() };
+    const userWithTimestamp: User = { ...this.newUser, createdAt: new Date().toISOString() };
     if (this.editMode && this.editingUserId) {
       this.userService.updateUser({ ...userWithTimestamp, id: this.editingUserId }).subscribe({
         next: () => {
@@ -342,9 +341,9 @@ export class UserTableComponent implements OnInit {
 
       // Filter
       if (this.filterMode === 'recent') {
-        result.sort((a, b) => (b.createdAt?.toMillis() ?? 0) - (a.createdAt?.toMillis() ?? 0));
+        result.sort((a, b) => Date.parse(b.createdAt ?? '0') - Date.parse(a.createdAt ?? '0'));
       } else if (this.filterMode === 'oldest') {
-        result.sort((a, b) => (a.createdAt?.toMillis() ?? 0) - (b.createdAt?.toMillis() ?? 0));
+        result.sort((a, b) => Date.parse(a.createdAt ?? '0') - Date.parse(b.createdAt ?? '0'));
       } else if (this.filterMode === 'adults') {
         result = result.filter(u => u.age >= 18);
       }

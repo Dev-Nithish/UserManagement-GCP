@@ -14,6 +14,9 @@ export class AuthService {
   private userSubject = new BehaviorSubject<any>(null);
   user$: Observable<any> = this.userSubject.asObservable();
 
+  // ✅ Replace with your actual OAuth client ID from Google Cloud Console
+  private clientId = 'YOUR_GOOGLE_OAUTH_CLIENT_ID.apps.googleusercontent.com';
+
   constructor(private router: Router) {
     // Load token from localStorage if available
     const token = localStorage.getItem(this.tokenKey);
@@ -23,19 +26,17 @@ export class AuthService {
   }
 
   // 🔑 Trigger Google Login
-  login(clientId: string) {
-    // Initialize Google Identity Services
-    google.accounts.id.initialize({
-      client_id: clientId, // Pass your GCP OAuth client ID here
-      callback: (response: any) => this.handleAuthCallback(response),
-    });
-
-    // Prompt login (popup or One Tap)
-    google.accounts.id.prompt();
-  }
+  login() {
+  const clientId = 'YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com';
+  google.accounts.id.initialize({
+    client_id: clientId,
+    callback: (response: any) => this.handleAuthCallback(response),
+  });
+  google.accounts.id.prompt();
+}
 
   // 📥 Handle login response
-  handleAuthCallback(response?: any) {
+  handleAuthCallback(response?: any): void {
     const token = response?.credential || localStorage.getItem(this.tokenKey);
 
     if (response?.credential) {
@@ -53,7 +54,7 @@ export class AuthService {
   }
 
   // 🚪 Logout
-  logout() {
+  logout(): void {
     localStorage.removeItem(this.tokenKey);
     this.userSubject.next(null);
     this.router.navigate(['/login']);
