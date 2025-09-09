@@ -43,3 +43,10 @@ Thumbs.db
 # Backend secrets (never commit these!)
 backend/service-account.json
 backend/.env
+
+# Hosting / Angular cache files
+*.cache
+hosting.*.cache
+
+# Firebase hosting cache
+.firebase/*.cache

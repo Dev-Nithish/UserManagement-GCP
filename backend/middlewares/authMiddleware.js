@@ -1,4 +1,8 @@
-const admin = require('firebase-admin');
+const { OAuth2Client } = require('google-auth-library');
+
+// Replace with your Google OAuth Client ID
+const CLIENT_ID = 'YOUR_GOOGLE_OAUTH_CLIENT_ID';
+const client = new OAuth2Client(CLIENT_ID);
 
 module.exports = async function verifyToken(req, res, next) {
   const authHeader = req.headers.authorization;
@@ -9,11 +13,17 @@ module.exports = async function verifyToken(req, res, next) {
   const idToken = authHeader.split(' ')[1];
 
   try {
-    const decodedToken = await admin.auth().verifyIdToken(idToken);
-    req.user = decodedToken; // Optional: attach decoded token to request
+    // Verify the token with Google
+    const ticket = await client.verifyIdToken({
+      idToken,
+      audience: CLIENT_ID,
+    });
+
+    const payload = ticket.getPayload();
+    req.user = payload; // Optional: attach user info (email, name, etc.)
     next();
   } catch (err) {
-    console.error('JWT verification failed:', err);
+    console.error('OAuth token verification failed:', err);
     res.status(401).json({ error: 'Unauthorized: Invalid token' });
   }
 };

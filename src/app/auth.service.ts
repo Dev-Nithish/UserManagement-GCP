@@ -10,33 +10,44 @@ declare const google: any;
 export class AuthService {
   private tokenKey = 'gcp_id_token';
 
-  // ✅ Observable for template
+  // ✅ Observable for template or subscription
   private userSubject = new BehaviorSubject<any>(null);
   user$: Observable<any> = this.userSubject.asObservable();
 
   constructor(private router: Router) {
+    // Load token from localStorage if available
     const token = localStorage.getItem(this.tokenKey);
-    if (token) this.userSubject.next({ token });
+    if (token) {
+      this.userSubject.next({ token });
+    }
   }
 
   // 🔑 Trigger Google Login
-  login() {
+  login(clientId: string) {
+    // Initialize Google Identity Services
     google.accounts.id.initialize({
-      client_id: 'YOUR_GCP_CLIENT_ID.apps.googleusercontent.com',
+      client_id: clientId, // Pass your GCP OAuth client ID here
       callback: (response: any) => this.handleAuthCallback(response),
     });
 
-    google.accounts.id.prompt(); // shows One Tap or popup
+    // Prompt login (popup or One Tap)
+    google.accounts.id.prompt();
   }
 
   // 📥 Handle login response
   handleAuthCallback(response?: any) {
     const token = response?.credential || localStorage.getItem(this.tokenKey);
+
     if (response?.credential) {
+      // Store token
       localStorage.setItem(this.tokenKey, response.credential);
+
+      // Update observable
       this.userSubject.next({ token: response.credential });
+
       console.log('✅ Google ID Token stored:', response.credential);
 
+      // Navigate to your app route
       this.router.navigate(['/users']);
     }
   }
@@ -48,7 +59,7 @@ export class AuthService {
     this.router.navigate(['/login']);
   }
 
-  // 👤 Get token
+  // 👤 Get token (for backend API calls)
   getToken(): string | null {
     return localStorage.getItem(this.tokenKey);
   }

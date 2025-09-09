@@ -1,69 +1,46 @@
 import { Injectable } from '@angular/core';
-import { Observable, from } from 'rxjs';
-import { map } from 'rxjs/operators';
-import { initializeApp } from 'firebase/app';
-import { getFirestore, collection, addDoc, doc, getDocs, updateDoc, deleteDoc, Timestamp } from 'firebase/firestore';
-
-// Firebase config — replace with your project config
-const firebaseConfig = {
-  apiKey: 'AIzaSyB4nshBH7wDRIXSaWmYIRm2qT9N1myqo30',
-  authDomain: 'angular-localstorage-table.firebaseapp.com',
-  projectId: 'angular-localstorage-table',
-  storageBucket: 'angular-localstorage-table.firebasestorage.app',
-  messagingSenderId: '613319343055',
-  appId: '1:613319343055:web:325683c06c667166b270ba',
-  measurementId: 'G-9YMRVQ53PR'
-};
-
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
+import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { Observable } from 'rxjs';
 
 export interface User {
   id?: string;
   name: string;
   age: number;
   contact: string;
-  createdAt?: Timestamp;
+  createdAt?: string; // ISO string from backend
 }
 
 @Injectable({
   providedIn: 'root'
 })
 export class UserService {
-  private usersCollection = collection(db, 'users');
+  private apiBase = '/api/users';
 
-  constructor() {}
+  constructor(private http: HttpClient) {}
 
-  // 🔥 CRUD Operations using Firestore
+  // ✅ Helper to add Authorization header with GCP OAuth token
+  private getHeaders(): HttpHeaders {
+    const token = localStorage.getItem('gcp_id_token'); // Token from AuthService
+    return new HttpHeaders({
+      Authorization: token ? `Bearer ${token}` : ''
+    });
+  }
+
+  // 🔥 CRUD Operations via backend API
   getUsers(): Observable<User[]> {
-    return from(getDocs(this.usersCollection)).pipe(
-      map(snapshot =>
-        snapshot.docs.map(docSnap => ({
-          id: docSnap.id,
-          ...docSnap.data()
-        } as User))
-      )
-    );
+    return this.http.get<User[]>(this.apiBase, { headers: this.getHeaders() });
   }
 
   addUser(user: User): Observable<User> {
-    const newUser = { ...user, createdAt: Timestamp.now() };
-    return from(addDoc(this.usersCollection, newUser)).pipe(
-      map(docRef => ({ ...newUser, id: docRef.id }))
-    );
+    return this.http.post<User>(this.apiBase, user, { headers: this.getHeaders() });
   }
 
   updateUser(user: User): Observable<User> {
     if (!user.id) throw new Error('User ID is missing');
-    const userDoc = doc(db, 'users', user.id);
-    return from(updateDoc(userDoc, { ...user, createdAt: Timestamp.now() })).pipe(
-      map(() => user)
-    );
+    return this.http.put<User>(`${this.apiBase}/${user.id}`, user, { headers: this.getHeaders() });
   }
 
   deleteUser(id: string): Observable<void> {
-    const userDoc = doc(db, 'users', id);
-    return from(deleteDoc(userDoc));
+    return this.http.delete<void>(`${this.apiBase}/${id}`, { headers: this.getHeaders() });
   }
 }

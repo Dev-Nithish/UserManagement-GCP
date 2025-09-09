@@ -46,25 +46,35 @@ export class UserTableComponent implements OnInit {
   recognition: any;
   isListening = false;
 
+  oauthToken: string = ''; // Optional: use if your backend requires token
+
   constructor(private userService: UserService, private snackBar: MatSnackBar) {}
 
   ngOnInit() {
     this.loadUsers();
     this.setupSpeechRecognition();
+    // Auto-refresh every 30s
+    setInterval(() => this.loadUsers(), 30000);
   }
 
+  // ================= Load Users =================
   private loadUsers() {
-    this.users$ = this.userService.getUsers();
-    this.users$.subscribe(users => {
+    this.users$ = this.userService.getUsers(); // remove oauthToken if not needed
+    this.users$.pipe(take(1)).subscribe(users => {
       this.displayedUsers = [...users];
       this.applySortAndFilter();
     });
   }
 
-  private setupSpeechRecognition() {
+  // ================= Speech Recognition =================
+  private setupSpeechRecognition(): void {
     const SpeechRecognition =
       (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-    if (!SpeechRecognition) return;
+
+    if (!SpeechRecognition) {
+      console.warn('SpeechRecognition API not supported in this browser.');
+      return;
+    }
 
     this.recognition = new SpeechRecognition();
     this.recognition.lang = 'en-US';
@@ -72,11 +82,108 @@ export class UserTableComponent implements OnInit {
     this.recognition.continuous = false;
 
     this.recognition.onresult = (event: any) => {
-      const transcript: string = event.results[0][0].transcript.toLowerCase();
-      this.handleSpeechResult(transcript);
+      if (event.results.length > 0 && event.results[0].length > 0) {
+        const transcript: string = event.results[0][0].transcript.toLowerCase();
+        this.handleSpeechResult(transcript);
+      }
     };
 
-    this.recognition.onerror = (event: any) => console.error('Speech recognition error:', event.error);
+    this.recognition.onerror = (event: any) => {
+      console.error('Speech recognition error:', event.error);
+    };
+  }
+
+  private handleSpeechResult(transcript: string): void {
+    transcript = transcript.toLowerCase();
+    console.log('Recognized speech:', transcript);
+
+    // ================= Add User via Voice =================
+    if (transcript.includes('name')) {
+      const nameMatch = transcript.match(/name\s+(\w+)/);
+      const ageMatch = transcript.match(/age\s+(\d+)/);
+      const contactMatch = transcript.match(/contact\s+(\d+)/);
+
+      const name = nameMatch ? nameMatch[1] : '';
+      const age = ageMatch ? parseInt(ageMatch[1], 10) : 0;
+      const contact = contactMatch ? contactMatch[1] : '';
+
+      if (name) {
+        this.userService.addUser({ name, age, contact, createdAt: Timestamp.now() }).subscribe({
+          next: () => {
+            this.snackBar.open(`✅ User ${name} added successfully`, 'Close', { duration: 3000 });
+            this.refreshUsers();
+          },
+          error: (err) => console.error('Add user error:', err)
+        });
+      } else {
+        this.snackBar.open(
+          '❌ Could not understand. Try saying: "name Ram age 20 contact 98765"',
+          'Close',
+          { duration: 4000 }
+        );
+      }
+      return;
+    }
+
+    // ================= Delete User via Voice =================
+    if (transcript.startsWith('delete')) {
+      const deleteMatch = transcript.match(/delete\s+(\w+)/);
+      if (deleteMatch) {
+        const nameToDelete = deleteMatch[1];
+        this.users$.pipe(take(1)).subscribe(users => {
+          const user = users.find(u => u.name.toLowerCase() === nameToDelete.toLowerCase());
+          if (user && user.id) {
+            this.userService.deleteUser(user.id).subscribe({
+              next: () => {
+                this.snackBar.open(`🗑️ User ${user.name} deleted`, 'Close', { duration: 3000 });
+                this.refreshUsers();
+              },
+              error: (err) => console.error('Delete user error:', err)
+            });
+          } else {
+            this.snackBar.open(`❌ No user found with name ${nameToDelete}`, 'Close', { duration: 3000 });
+          }
+        });
+      }
+      return;
+    }
+
+    // ================= Update User via Voice =================
+    if (transcript.startsWith('update')) {
+      const nameMatch = transcript.match(/update\s+(\w+)/);
+      const ageMatch = transcript.match(/age\s+(\d+)/);
+      const contactMatch = transcript.match(/contact\s+(\d+)/);
+
+      if (nameMatch) {
+        const nameToUpdate = nameMatch[1];
+        this.users$.pipe(take(1)).subscribe(users => {
+          const user = users.find(u => u.name.toLowerCase() === nameToUpdate.toLowerCase());
+          if (user && user.id) {
+            const updatedUser: User = { ...user };
+            if (ageMatch) updatedUser.age = parseInt(ageMatch[1], 10);
+            if (contactMatch) updatedUser.contact = contactMatch[1];
+
+            this.userService.updateUser(updatedUser).subscribe({
+              next: () => {
+                this.snackBar.open(`✏️ User ${user.name} updated successfully`, 'Close', { duration: 3000 });
+                this.refreshUsers();
+              },
+              error: (err) => console.error('Update user error:', err)
+            });
+          } else {
+            this.snackBar.open(`❌ No user found with name ${nameToUpdate}`, 'Close', { duration: 3000 });
+          }
+        });
+      }
+      return;
+    }
+
+    // ================= Fallback =================
+    this.snackBar.open(
+      '❌ Could not understand. Try: "name Ram age 20 contact 98765", "delete Ram", or "update Ram age 25"',
+      'Close',
+      { duration: 5000 }
+    );
   }
 
   // ================= CRUD =================
@@ -175,19 +282,36 @@ export class UserTableComponent implements OnInit {
         const worksheet = workbook.Sheets[sheetName];
         const jsonData: any[] = XLSX.utils.sheet_to_json(worksheet, { defval: '' });
 
+        const usersToUpload: User[] = [];
+
         jsonData.forEach(userData => {
           const name = userData.Name?.toString().trim();
           const age = Number(userData.Age);
           const contact = userData.Contact?.toString().trim();
-
           if (!name || isNaN(age) || !contact) return;
 
-          const user: User = { name, age, contact, createdAt: Timestamp.now() };
-          this.userService.addUser(user).subscribe({
-            next: () => this.refreshUsers(),
-            error: (err) => console.error('Error adding user from import:', err)
-          });
+          usersToUpload.push({ name, age, contact });
         });
+
+        // Send entire list to backend to update GCS
+        fetch('/api/users/upload', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(usersToUpload)
+        })
+        .then(res => {
+          if (res.ok) {
+            this.snackBar.open('Users uploaded to GCS successfully!', 'Close', { duration: 3000 });
+            this.refreshUsers(); // reload table
+          } else {
+            this.snackBar.open('Failed to upload users.', 'Close', { duration: 3000 });
+          }
+        })
+        .catch(err => {
+          console.error('Error uploading users:', err);
+          this.snackBar.open('Error uploading users.', 'Close', { duration: 3000 });
+        });
+
       } catch (err) {
         console.error('Error reading Excel file:', err);
       }
@@ -216,10 +340,16 @@ export class UserTableComponent implements OnInit {
     this.users$.pipe(take(1)).subscribe(users => {
       let result = [...users];
 
-      if (this.filterMode === 'recent') result.sort((a, b) => (b.createdAt?.toMillis() ?? 0) - (a.createdAt?.toMillis() ?? 0));
-      else if (this.filterMode === 'oldest') result.sort((a, b) => (a.createdAt?.toMillis() ?? 0) - (b.createdAt?.toMillis() ?? 0));
-      else if (this.filterMode === 'adults') result = result.filter(u => u.age >= 18);
+      // Filter
+      if (this.filterMode === 'recent') {
+        result.sort((a, b) => (b.createdAt?.toMillis() ?? 0) - (a.createdAt?.toMillis() ?? 0));
+      } else if (this.filterMode === 'oldest') {
+        result.sort((a, b) => (a.createdAt?.toMillis() ?? 0) - (b.createdAt?.toMillis() ?? 0));
+      } else if (this.filterMode === 'adults') {
+        result = result.filter(u => u.age >= 18);
+      }
 
+      // Sort
       if (this.sortMode === 'name') result.sort((a, b) => a.name.localeCompare(b.name));
       else if (this.sortMode === 'age') result.sort((a, b) => a.age - b.age);
 
@@ -240,98 +370,5 @@ export class UserTableComponent implements OnInit {
 
   stopListening() {
     this.recognition?.stop();
-  }
-
-  handleSpeechResult(transcript: string) {
-    transcript = transcript.toLowerCase();
-    console.log('Recognized speech:', transcript);
-
-    // 🟢 ADD USER
-    if (transcript.includes('name')) {
-      const nameMatch = transcript.match(/name\s+(\w+)/);
-      const ageMatch = transcript.match(/age\s+(\d+)/);
-      const contactMatch = transcript.match(/contact\s+(\d+)/);
-
-      const name = nameMatch ? nameMatch[1] : '';
-      const age = ageMatch ? parseInt(ageMatch[1], 10) : 0;
-      const contact = contactMatch ? contactMatch[1] : '';
-
-      if (name) {
-        this.userService.addUser({ name, age, contact, createdAt: Timestamp.now() }).subscribe({
-                      next: () => {
-              this.snackBar.open(`✅ User ${name} added successfully`, 'Close', { duration: 3000 });
-              this.refreshUsers();
-            },
-            error: (err) => console.error('Add user error:', err)
-          });
-      } else {
-        this.snackBar.open(
-          '❌ Could not understand. Try saying: "name Ram age 20 contact 98765"',
-          'Close',
-          { duration: 4000 }
-        );
-      }
-      return;
-    }
-
-    // 🔴 DELETE USER
-    if (transcript.startsWith('delete')) {
-      const deleteMatch = transcript.match(/delete\s+(\w+)/);
-      if (deleteMatch) {
-        const nameToDelete = deleteMatch[1];
-        this.users$.pipe(take(1)).subscribe(users => {
-          const user = users.find(u => u.name.toLowerCase() === nameToDelete.toLowerCase());
-          if (user && user.id) {
-            this.userService.deleteUser(user.id).subscribe({
-              next: () => {
-                this.snackBar.open(`🗑️ User ${user.name} deleted`, 'Close', { duration: 3000 });
-                this.refreshUsers();
-              },
-              error: (err) => console.error('Delete user error:', err)
-            });
-          } else {
-            this.snackBar.open(`❌ No user found with name ${nameToDelete}`, 'Close', { duration: 3000 });
-          }
-        });
-      }
-      return;
-    }
-
-    // ✏️ UPDATE USER
-    if (transcript.startsWith('update')) {
-      const nameMatch = transcript.match(/update\s+(\w+)/);
-      const ageMatch = transcript.match(/age\s+(\d+)/);
-      const contactMatch = transcript.match(/contact\s+(\d+)/);
-
-      if (nameMatch) {
-        const nameToUpdate = nameMatch[1];
-        this.users$.pipe(take(1)).subscribe(users => {
-          const user = users.find(u => u.name.toLowerCase() === nameToUpdate.toLowerCase());
-          if (user && user.id) {
-            const updatedUser: User = { ...user };
-            if (ageMatch) updatedUser.age = parseInt(ageMatch[1], 10);
-            if (contactMatch) updatedUser.contact = contactMatch[1];
-
-            this.userService.updateUser(updatedUser).subscribe({
-              next: () => {
-                this.snackBar.open(`✏️ User ${user.name} updated successfully`, 'Close', { duration: 3000 });
-                this.refreshUsers();
-              },
-              error: (err) => console.error('Update user error:', err)
-            });
-          } else {
-            this.snackBar.open(`❌ No user found with name ${nameToUpdate}`, 'Close', { duration: 3000 });
-          }
-        });
-      }
-      return;
-    }
-
-    // 🚨 Fallback
-    this.snackBar.open(
-      '❌ Could not understand. Try: "name Ram age 20 contact 98765", "delete Ram", or "update Ram age 25"',
-      'Close',
-      { duration: 5000 }
-    );
   }
 }
