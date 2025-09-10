@@ -5,7 +5,7 @@ FROM node:20 AS build
 
 WORKDIR /app
 
-# Copy frontend dependencies (root package.json)
+# Copy frontend dependencies
 COPY package*.json ./
 RUN npm install --legacy-peer-deps
 
@@ -31,9 +31,10 @@ RUN npm install --omit=dev --legacy-peer-deps
 COPY backend/ ./
 
 # Copy built Angular frontend from build stage
-COPY --from=build /app/dist ./dist
+# ⚡ Ensures Angular build output is in /dist for backend server
+COPY --from=build /app/dist/angular-localstorage-table ./dist
 
-# Expose port for clarity (Cloud Run uses $PORT)
+# Expose port for Cloud Run (uses $PORT)
 EXPOSE 8080
 
 # Start the backend server
