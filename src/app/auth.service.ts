@@ -29,6 +29,7 @@ export class AuthService {
   login() {
     google.accounts.id.initialize({
       client_id: this.clientId,
+      auto_select: false, // optional, prevents auto prompt if user is already signed in
       callback: (response: any) => this.handleAuthCallback(response),
     });
     google.accounts.id.prompt();
@@ -36,20 +37,21 @@ export class AuthService {
 
   // Handle login response
   handleAuthCallback(response?: any): void {
-    const token = response?.credential || localStorage.getItem(this.tokenKey);
-
-    if (response?.credential) {
-      // Store token
-      localStorage.setItem(this.tokenKey, response.credential);
-
-      // Update observable
-      this.userSubject.next({ token: response.credential });
-
-      console.log('✅ Google ID Token stored:', response.credential);
-
-      // Navigate to your app route
-      this.router.navigate(['/users']);
+    if (!response?.credential) {
+      console.error('❌ No credential returned from Google Identity Service');
+      return;
     }
+
+    // Store token
+    localStorage.setItem(this.tokenKey, response.credential);
+
+    // Update observable
+    this.userSubject.next({ token: response.credential });
+
+    console.log('✅ Google ID Token stored:', response.credential);
+
+    // Navigate to your app route
+    this.router.navigate(['/users']);
   }
 
   // Logout

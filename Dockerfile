@@ -29,9 +29,11 @@ RUN npm install --omit=dev --legacy-peer-deps
 # Copy backend code
 COPY backend/ ./
 
-# Copy built Angular frontend from build stage
-COPY --from=build /app/dist/angular-localstorage-table ./dist
+# Copy Angular build from build stage
+COPY --from=build /app/dist/angular-localstorage-table ./dist/angular-localstorage-table
 
+# Expose the port Cloud Run expects
 EXPOSE 8080
 
+# Start backend server
 CMD ["node", "server.js"]

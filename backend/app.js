@@ -6,7 +6,10 @@ const XLSX = require('xlsx');
 // ✅ Import Google OAuth middleware
 const verifyToken = require('./middlewares/authMiddleware');
 
-app.use(express.json({ limit: '10mb' })); // to parse large JSON payloads
+// ----------------------------
+// ✅ Parse JSON bodies
+// ----------------------------
+app.use(express.json({ limit: '10mb' }));
 
 const storage = new Storage();
 const bucketName = 'user-bucket123';
@@ -17,7 +20,8 @@ const fileName = 'users.xlsx';
 // ----------------------------
 app.post('/users/upload', verifyToken, async (req, res) => {
   try {
-    const users = req.body; // expects an array of user objects [{name, age, contact}, ...]
+    const users = req.body; // expects [{name, age, contact}, ...]
+
     if (!Array.isArray(users)) return res.status(400).send('Invalid data');
 
     // Convert JSON to Excel
@@ -36,7 +40,6 @@ app.post('/users/upload', verifyToken, async (req, res) => {
     const file = storage.bucket(bucketName).file(fileName);
     await file.save(buffer, { contentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
 
-    // ✅ Log who uploaded and how many users
     console.log(`[${new Date().toISOString()}] User ${req.user.email} uploaded ${users.length} users to GCS`);
 
     res.status(200).send('Users uploaded to GCS successfully');
