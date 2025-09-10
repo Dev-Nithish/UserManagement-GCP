@@ -1,11 +1,24 @@
 const express = require('express');
 const path = require('path');
+const cors = require('cors'); // ✅ import CORS
 
 // ----------------------------
 // ✅ Import backend API routes
 // ----------------------------
 const apiApp = require('./app');
 const app = express();
+
+// ----------------------------
+// ✅ Enable CORS for frontend domains
+// ----------------------------
+app.use(cors({
+  origin: [
+    'http://localhost:4200', // dev
+    'https://usermanagement-gcp3-937580556914.asia-south1.run.app' // prod
+  ],
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  credentials: true
+}));
 
 // ----------------------------
 // ✅ Middleware & API routes
@@ -15,11 +28,10 @@ app.use('/api', apiApp);
 // ----------------------------
 // ✅ Serve Angular frontend
 // ----------------------------
-// In Dockerfile, Angular build is copied to ./dist
 const angularDistPath = path.join(__dirname, 'dist');
 app.use(express.static(angularDistPath));
 
-// Angular fallback route (for client-side routing, except /api)
+// Angular fallback route (except /api)
 app.get(/^\/(?!api).*$/, (req, res) => {
   res.sendFile(path.join(angularDistPath, 'index.html'));
 });

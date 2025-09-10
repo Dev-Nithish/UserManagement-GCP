@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { Router } from '@angular/router';
 import { BehaviorSubject, Observable } from 'rxjs';
+import { environment } from '../environments/environment';
 
 // 👉 Google Identity Services (GIS) SDK
 declare const google: any;
@@ -9,12 +10,12 @@ declare const google: any;
 export class AuthService {
   private tokenKey = 'gcp_id_token';
 
-  // ✅ Observable for template or subscription
+  // Observable for template or subscription
   private userSubject = new BehaviorSubject<any>(null);
   user$: Observable<any> = this.userSubject.asObservable();
 
-  // ✅ Use the OAuth Client ID from GCP Console
-  private clientId = '937580556914-hfd084a6e8qeqfqfajin767n81srmdpi.apps.googleusercontent.com';
+  // Use the OAuth Client ID from environment
+  private clientId = environment.googleClientId;
 
   constructor(private router: Router) {
     // Load token from localStorage if available
@@ -24,16 +25,16 @@ export class AuthService {
     }
   }
 
-  // 🔑 Trigger Google Login
- login(clientId: string) {
-  google.accounts.id.initialize({
-    client_id: clientId,
-    callback: (response: any) => this.handleAuthCallback(response),
-  });
-  google.accounts.id.prompt();
-}
+  // Trigger Google Login
+  login() {
+    google.accounts.id.initialize({
+      client_id: this.clientId,
+      callback: (response: any) => this.handleAuthCallback(response),
+    });
+    google.accounts.id.prompt();
+  }
 
-  // 📥 Handle login response
+  // Handle login response
   handleAuthCallback(response?: any): void {
     const token = response?.credential || localStorage.getItem(this.tokenKey);
 
@@ -51,19 +52,19 @@ export class AuthService {
     }
   }
 
-  // 🚪 Logout
+  // Logout
   logout(): void {
     localStorage.removeItem(this.tokenKey);
     this.userSubject.next(null);
     this.router.navigate(['/login']);
   }
 
-  // 👤 Get token (for backend API calls)
+  // Get token (for backend API calls)
   getToken(): string | null {
     return localStorage.getItem(this.tokenKey);
   }
 
-  // ✅ Login status
+  // Login status
   isLoggedIn(): boolean {
     return !!this.getToken();
   }
