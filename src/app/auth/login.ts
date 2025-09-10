@@ -11,7 +11,8 @@ import { AuthService } from '../auth.service';
   standalone: true
 })
 export class LoginComponent implements OnInit {
-  private clientId = '<YOUR_CLIENT_ID>.apps.googleusercontent.com'; // Replace with your actual GCP OAuth client ID
+  // 👇 declare clientId here (public so it's accessible inside methods)
+  clientId = 'YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com';
 
   constructor(private auth: AuthService, private router: Router) {}
 
@@ -23,7 +24,7 @@ export class LoginComponent implements OnInit {
   }
 
   login() {
-    // Pass clientId to the AuthService
+    // ✅ now works since clientId exists
     this.auth.login(this.clientId);
   }
 }
