@@ -2,6 +2,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { environment } from '../environments/environment'; // 👈 import environment
 
 export interface User {
   id?: string;
@@ -15,7 +16,8 @@ export interface User {
   providedIn: 'root'
 })
 export class UserService {
-  private apiBase = '/api/users';
+  // 👇 Build full API base path from environment
+  private apiBase = `${environment.apiBaseUrl}/users`;
 
   constructor(private http: HttpClient) {}
 
