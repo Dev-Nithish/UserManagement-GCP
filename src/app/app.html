@@ -1,9 +1,7 @@
-<!-- src/app/app.html -->
-
 <!-- If user is logged out: show Auth landing -->
 <ng-container *ngIf="(auth.user$ | async) === null; else loggedIn">
   <!-- Direct login button -->
-  <button mat-raised-button color="primary" (click)="auth.login()">
+  <button mat-raised-button color="primary" (click)="auth.login(clientId)">
     Login with Google
   </button>
 </ng-container>
