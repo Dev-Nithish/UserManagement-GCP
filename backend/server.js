@@ -15,10 +15,11 @@ app.use('/api', apiApp);
 // ----------------------------
 // ✅ Serve Angular frontend
 // ----------------------------
+// In Dockerfile, Angular build is copied to ./dist
 const angularDistPath = path.join(__dirname, 'dist');
 app.use(express.static(angularDistPath));
 
-// Angular routes fallback (except /api)
+// Angular fallback route (for client-side routing, except /api)
 app.get(/^\/(?!api).*$/, (req, res) => {
   res.sendFile(path.join(angularDistPath, 'index.html'));
 });

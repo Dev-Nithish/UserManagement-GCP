@@ -20,7 +20,6 @@ RUN npm run build -- --configuration production --project=angular-localstorage-t
 # -----------------------------
 FROM node:20
 
-# Set working directory to backend
 WORKDIR /app/backend
 
 # Copy backend dependencies and install
@@ -31,11 +30,8 @@ RUN npm install --omit=dev --legacy-peer-deps
 COPY backend/ ./
 
 # Copy built Angular frontend from build stage
-# ⚡ Ensures Angular build output is in /dist for backend server
 COPY --from=build /app/dist/angular-localstorage-table ./dist
 
-# Expose port for Cloud Run (uses $PORT)
 EXPOSE 8080
 
-# Start the backend server
 CMD ["node", "server.js"]

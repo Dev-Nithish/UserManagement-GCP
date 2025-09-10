@@ -4,7 +4,7 @@ const { Storage } = require('@google-cloud/storage');
 const XLSX = require('xlsx');
 
 // ✅ Import Google OAuth middleware
-const verifyToken = require('./auth-middleware');
+const verifyToken = require('./middlewares/authMiddleware');
 
 app.use(express.json({ limit: '10mb' })); // to parse large JSON payloads
 
