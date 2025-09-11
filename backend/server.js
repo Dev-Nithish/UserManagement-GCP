@@ -13,7 +13,8 @@ const app = express();
 // ----------------------------
 const allowedOrigins = [
   'http://localhost:4200', // dev
-  'https://usermanagement-gcp09-937580556914.asia-south1.run.app' // frontend (Angular prod)
+  'https://usermanagement-gcp09-937580556914.asia-south1.run.app', // frontend (Asia-South1)
+  'https://usermanagement-gcp12-937580556914.europe-west1.run.app' // frontend (Europe-West1)
 ];
 
 // ----------------------------
@@ -28,7 +29,7 @@ app.use(cors({
       return callback(null, true);
     }
 
-    // ❌ Instead of throwing error (which caused 500), just block the request gracefully
+    // ❌ Block other origins gracefully
     console.warn(`⚠️  Blocked by CORS: ${origin}`);
     return callback(null, false);
   },
@@ -72,7 +73,7 @@ app.get('/health', (req, res) => {
 });
 
 // ----------------------------
-// ✅ Global error handler (shows real errors instead of silent 500)
+// ✅ Global error handler
 // ----------------------------
 app.use((err, req, res, next) => {
   console.error('🔥 Server error:', err.stack || err.message);
