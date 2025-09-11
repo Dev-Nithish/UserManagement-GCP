@@ -27,6 +27,9 @@ export class AuthService {
 
   // Trigger Google Login
   login() {
+    console.log("Runtime origin:", window.location.origin);
+    console.log("Using Google Client ID:", this.clientId);
+
     google.accounts.id.initialize({
       client_id: this.clientId,
       auto_select: false, // optional, prevents auto prompt if user is already signed in

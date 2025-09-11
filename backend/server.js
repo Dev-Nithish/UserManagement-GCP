@@ -13,14 +13,21 @@ const app = express();
 // ----------------------------
 const allowedOrigins = [
   'http://localhost:4200', // dev
-  'https://usermanagement-gcp3-937580556914.asia-south1.run.app' // prod
+  'https://usermanagement-gcp09-937580556914.asia-south1.run.app' // frontend (Angular prod)
 ];
 
 // ----------------------------
 // ✅ Enable CORS with preflight handling
 // ----------------------------
 app.use(cors({
-  origin: allowedOrigins,
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps, curl, Postman)
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.indexOf(origin) === -1) {
+      return callback(new Error('CORS policy: Origin not allowed -> ' + origin), false);
+    }
+    return callback(null, true);
+  },
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   credentials: true
 }));
