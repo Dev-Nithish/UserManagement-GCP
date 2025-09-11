@@ -1,7 +1,7 @@
 # -----------------------------
 # Stage 1: Build Angular frontend
 # -----------------------------
-FROM gcr.io/google-appengine/nodejs:20 AS build
+FROM node:20 AS build
 
 WORKDIR /app
 
@@ -16,24 +16,28 @@ COPY . ./
 RUN npm run build -- --configuration production --project=angular-localstorage-table
 
 # -----------------------------
-# Stage 2: Runtime container
+# Stage 2: Runtime container (distroless)
 # -----------------------------
-FROM gcr.io/google-appengine/nodejs:20
+FROM gcr.io/distroless/nodejs20
 
 WORKDIR /app/backend
 
-# Copy backend dependencies and install
+# Copy backend dependencies
+COPY backend/package*.json ./
+# We need npm to install → use a temporary node:20 stage
+FROM node:20 AS deps
+WORKDIR /app/backend
 COPY backend/package*.json ./
 RUN npm install --omit=dev --legacy-peer-deps
 
-# Copy backend code
+# Copy installed node_modules into distroless image
+FROM gcr.io/distroless/nodejs20
+WORKDIR /app/backend
+COPY --from=deps /app/backend/node_modules ./node_modules
 COPY backend/ ./
 
 # Copy Angular build from build stage
 COPY --from=build /app/dist/angular-localstorage-table ./dist/angular-localstorage-table
 
-# Expose the port Cloud Run expects
 EXPOSE 8080
-
-# Start backend server
-CMD ["node", "server.js"]
+CMD ["server.js"]
