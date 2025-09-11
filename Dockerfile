@@ -1,7 +1,7 @@
 # -----------------------------
 # Stage 1: Build Angular frontend
 # -----------------------------
-FROM node:20 AS build
+FROM gcr.io/google-appengine/nodejs:20 AS build
 
 WORKDIR /app
 
@@ -18,7 +18,7 @@ RUN npm run build -- --configuration production --project=angular-localstorage-t
 # -----------------------------
 # Stage 2: Runtime container
 # -----------------------------
-FROM node:20
+FROM gcr.io/google-appengine/nodejs:20
 
 WORKDIR /app/backend
 
