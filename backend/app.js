@@ -13,72 +13,134 @@ const bucketName = 'user-bucket123';
 const fileName = 'users.xlsx';
 
 // ----------------------------
-// ✅ Upload/Overwrite users.xlsx in GCS (protected by OAuth)
+// ✅ Utility: load users.xlsx as JSON
 // ----------------------------
-app.post('/users/upload', verifyToken, async (req, res) => {
-  try {
-    const users = req.body; // expects [{name, age, contact}, ...]
+async function loadUsersFromGCS() {
+  const file = storage.bucket(bucketName).file(fileName);
+  const [exists] = await file.exists();
+  if (!exists) return [];
 
-    if (!Array.isArray(users)) {
-      return res.status(400).json({ error: 'Invalid data: expected array of users' });
-    }
+  const [contents] = await file.download();
+  const workbook = XLSX.read(contents, { type: 'buffer' });
+  const sheet = workbook.Sheets['Users'];
+  return XLSX.utils.sheet_to_json(sheet);
+}
 
-    // Convert JSON to Excel
-    const worksheet = XLSX.utils.json_to_sheet(users.map(u => ({
-      Name: u.name,
-      Age: u.age,
-      Contact: u.contact
-    })));
+// ✅ Utility: save JSON users back to users.xlsx
+async function saveUsersToGCS(users) {
+  const worksheet = XLSX.utils.json_to_sheet(users);
+  const workbook = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(workbook, worksheet, 'Users');
+  const buffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'buffer' });
 
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, 'Users');
-    const buffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'buffer' });
-
-    // Upload to GCS
-    const file = storage.bucket(bucketName).file(fileName);
-    await file.save(buffer, {
-      contentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-    });
-
-    console.log(`[${new Date().toISOString()}] User ${req.user.email} uploaded ${users.length} users to GCS`);
-
-    const publicUrl = `https://storage.googleapis.com/${bucketName}/${fileName}`;
-    res.status(200).json({
-      message: 'Users uploaded to GCS successfully',
-      url: publicUrl
-    });
-  } catch (err) {
-    console.error('Error uploading users to GCS:', err);
-    res.status(500).json({ error: 'Failed to upload users', details: err.message });
-  }
-});
+  const file = storage.bucket(bucketName).file(fileName);
+  await file.save(buffer, {
+    contentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+  });
+}
 
 // ----------------------------
-// ✅ Fetch users from users.xlsx in GCS (protected by OAuth)
+// ✅ GET /users → fetch all users
 // ----------------------------
 app.get('/users', verifyToken, async (req, res) => {
   try {
-    const file = storage.bucket(bucketName).file(fileName);
-    const [exists] = await file.exists();
-
-    if (!exists) {
-      return res.status(404).json({ error: 'No users file found' });
-    }
-
-    // Download file from GCS
-    const [contents] = await file.download();
-
-    // Parse Excel into JSON
-    const workbook = XLSX.read(contents, { type: 'buffer' });
-    const sheet = workbook.Sheets['Users'];
-    const users = XLSX.utils.sheet_to_json(sheet);
-
-    console.log(`[${new Date().toISOString()}] User ${req.user.email} fetched ${users.length} users from GCS`);
-
+    const users = await loadUsersFromGCS();
+    console.log(`[${new Date().toISOString()}] ${req.user.email} fetched ${users.length} users`);
     res.status(200).json(users);
   } catch (err) {
     console.error('Error reading users from GCS:', err);
     res.status(500).json({ error: 'Failed to fetch users', details: err.message });
+  }
+});
+
+// ----------------------------
+// ✅ POST /users → add new user
+// ----------------------------
+app.post('/users', verifyToken, async (req, res) => {
+  try {
+    const newUser = req.body;
+    if (!newUser.name || !newUser.age || !newUser.contact) {
+      return res.status(400).json({ error: 'Missing required fields (name, age, contact)' });
+    }
+
+    const users = await loadUsersFromGCS();
+    const newId = users.length > 0 ? Math.max(...users.map(u => parseInt(u.id || 0))) + 1 : 1;
+
+    const userToAdd = { id: newId.toString(), ...newUser, createdAt: new Date().toISOString() };
+    users.push(userToAdd);
+
+    await saveUsersToGCS(users);
+
+    console.log(`[${new Date().toISOString()}] ${req.user.email} added user ID ${newId}`);
+    res.status(201).json(userToAdd);
+  } catch (err) {
+    console.error('Error adding user:', err);
+    res.status(500).json({ error: 'Failed to add user', details: err.message });
+  }
+});
+
+// ----------------------------
+// ✅ PUT /users/:id → update user
+// ----------------------------
+app.put('/users/:id', verifyToken, async (req, res) => {
+  try {
+    const userId = req.params.id;
+    const updates = req.body;
+
+    const users = await loadUsersFromGCS();
+    const index = users.findIndex(u => u.id == userId);
+
+    if (index === -1) return res.status(404).json({ error: 'User not found' });
+
+    users[index] = { ...users[index], ...updates };
+    await saveUsersToGCS(users);
+
+    console.log(`[${new Date().toISOString()}] ${req.user.email} updated user ID ${userId}`);
+    res.status(200).json(users[index]);
+  } catch (err) {
+    console.error('Error updating user:', err);
+    res.status(500).json({ error: 'Failed to update user', details: err.message });
+  }
+});
+
+// ----------------------------
+// ✅ DELETE /users/:id → delete user
+// ----------------------------
+app.delete('/users/:id', verifyToken, async (req, res) => {
+  try {
+    const userId = req.params.id;
+    let users = await loadUsersFromGCS();
+
+    const index = users.findIndex(u => u.id == userId);
+    if (index === -1) return res.status(404).json({ error: 'User not found' });
+
+    users.splice(index, 1);
+    await saveUsersToGCS(users);
+
+    console.log(`[${new Date().toISOString()}] ${req.user.email} deleted user ID ${userId}`);
+    res.status(200).json({ message: 'User deleted' });
+  } catch (err) {
+    console.error('Error deleting user:', err);
+    res.status(500).json({ error: 'Failed to delete user', details: err.message });
+  }
+});
+
+// ----------------------------
+// ✅ Keep your old bulk upload route
+// ----------------------------
+app.post('/users/upload', verifyToken, async (req, res) => {
+  try {
+    const users = req.body;
+    if (!Array.isArray(users)) {
+      return res.status(400).json({ error: 'Invalid data: expected array of users' });
+    }
+
+    await saveUsersToGCS(users);
+    console.log(`[${new Date().toISOString()}] ${req.user.email} uploaded ${users.length} users`);
+    res.status(200).json({ message: 'Users uploaded successfully' });
+  } catch (err) {
+    console.error('Error uploading users:', err);
+    res.status(500).json({ error: 'Failed to upload users', details: err.message });
   }
 });
 
