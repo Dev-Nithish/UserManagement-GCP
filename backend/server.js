@@ -13,9 +13,7 @@ const app = express();
 // ----------------------------
 const allowedOrigins = [
   'http://localhost:4200', // dev
-  'https://usermanagement-gcp09-937580556914.asia-south1.run.app', // frontend (Asia-South1)
-  'https://usermanagement-gcp12-937580556914.europe-west1.run.app', // frontend (Europe-West1)
-  'https://usermanagement-gcp98-937580556914.asia-south1.run.app' // ✅ NEW frontend (Asia-South1, Cloud Run instance)
+  'https://usermanagement-gcp-dcskdlyfka-el.a.run.app' // ✅ stable Cloud Run frontend
 ];
 
 // ----------------------------
