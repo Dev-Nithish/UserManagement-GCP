@@ -12,7 +12,9 @@ const storage = new Storage();
 const bucketName = 'user-bucket123';
 const fileName = 'users.xlsx';
 
+// ----------------------------
 // ✅ Upload/Overwrite users.xlsx in GCS (protected by OAuth)
+// ----------------------------
 app.post('/users/upload', verifyToken, async (req, res) => {
   try {
     const users = req.body; // expects [{name, age, contact}, ...]
@@ -47,7 +49,36 @@ app.post('/users/upload', verifyToken, async (req, res) => {
     });
   } catch (err) {
     console.error('Error uploading users to GCS:', err);
-    res.status(500).json({ error: 'Failed to upload users' });
+    res.status(500).json({ error: 'Failed to upload users', details: err.message });
+  }
+});
+
+// ----------------------------
+// ✅ Fetch users from users.xlsx in GCS (protected by OAuth)
+// ----------------------------
+app.get('/users', verifyToken, async (req, res) => {
+  try {
+    const file = storage.bucket(bucketName).file(fileName);
+    const [exists] = await file.exists();
+
+    if (!exists) {
+      return res.status(404).json({ error: 'No users file found' });
+    }
+
+    // Download file from GCS
+    const [contents] = await file.download();
+
+    // Parse Excel into JSON
+    const workbook = XLSX.read(contents, { type: 'buffer' });
+    const sheet = workbook.Sheets['Users'];
+    const users = XLSX.utils.sheet_to_json(sheet);
+
+    console.log(`[${new Date().toISOString()}] User ${req.user.email} fetched ${users.length} users from GCS`);
+
+    res.status(200).json(users);
+  } catch (err) {
+    console.error('Error reading users from GCS:', err);
+    res.status(500).json({ error: 'Failed to fetch users', details: err.message });
   }
 });
 
